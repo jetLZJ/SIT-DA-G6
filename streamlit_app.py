@@ -6,6 +6,7 @@ from typing import Optional
 import sqlalchemy
 
 from app import data_loader, utils, viz
+from app_pages import overview, data_schema, cleaning_eda, dashboard
 
 
 PAGE_TITLE = 'SIT-DA Capstone — Labor Force Trends'
@@ -40,21 +41,7 @@ def read_df_from_engine(engine: sqlalchemy.engine.Engine, table_name: str, limit
     return data_loader.read_table(engine, table_name, limit=limit)
 
 
-def page_overview():
-    st.header('Overview')
-    st.markdown('This Streamlit app is a narrative scaffold for the SIT-DA capstone project. Use the sidebar to jump between modules.')
-    st.subheader('Problem statement')
-    st.markdown(load_problem_statement())
-    st.markdown('---')
-    st.subheader('Quick demo data')
-    uploaded = st.file_uploader('Optional: upload a CSV (if no DB connection)', type=['csv'])
-    if uploaded:
-        try:
-            df = pd.read_csv(uploaded)
-            st.dataframe(df.head())
-            st.info(f'Columns: {list(df.columns)}')
-        except Exception as e:
-            st.error(f'Failed to read CSV: {e}')
+# page functions have been moved to the pages/ package
 
 
 def page_data_and_schema(engine: Optional[sqlalchemy.engine.Engine]):
@@ -342,13 +329,13 @@ def main():
     page = st.sidebar.radio('Go to', ['Overview', 'Module 1 — Data & Schema', 'Module 2 & 3 — Cleaning & EDA', 'Module 4 — Dashboard & Deliverables'])
 
     if page == 'Overview':
-        page_overview()
+        overview.page_overview()
     elif page == 'Module 1 — Data & Schema':
-        page_data_and_schema(engine)
+        data_schema.page_data_and_schema(engine)
     elif page == 'Module 2 & 3 — Cleaning & EDA':
-        page_cleaning_and_eda(engine)
+        cleaning_eda.page_cleaning_and_eda(engine)
     elif page == 'Module 4 — Dashboard & Deliverables':
-        page_dashboard_and_deliverables(engine)
+        dashboard.page_dashboard_and_deliverables(engine)
 
 
 if __name__ == '__main__':
