@@ -6,7 +6,7 @@ from typing import Optional
 import sqlalchemy
 
 from app import data_loader, utils, viz
-from app_pages import overview, data_schema, cleaning_eda, dashboard
+from app_pages import overview, data_schema, cleaning_eda, dashboard, module_4_machine_learning
 
 
 PAGE_TITLE = 'SIT-DA Capstone — Labor Force Trends'
@@ -326,7 +326,7 @@ def main():
     engine = get_db_engine()
 
     st.sidebar.markdown('## Navigation')
-    page = st.sidebar.radio('Go to', ['Overview', 'Module 1 — Data & Schema', 'Module 2 & 3 — Cleaning & EDA', 'Module 4 — Dashboard & Deliverables'])
+    page = st.sidebar.radio('Go to', ['Overview', 'Module 1 — Data & Schema', 'Module 2 & 3 — Cleaning & EDA', 'Module 4 — Machine Learning', 'Module 4 — Dashboard & Deliverables'])
 
     if page == 'Overview':
         overview.page_overview()
@@ -334,6 +334,8 @@ def main():
         data_schema.page_data_and_schema(engine)
     elif page == 'Module 2 & 3 — Cleaning & EDA':
         cleaning_eda.page_cleaning_and_eda(engine)
+    elif page == 'Module 4 — Machine Learning':
+        module_4_machine_learning.module_4_page(engine)
     elif page == 'Module 4 — Dashboard & Deliverables':
         dashboard.page_dashboard_and_deliverables(engine)
 
