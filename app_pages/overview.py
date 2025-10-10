@@ -24,7 +24,7 @@ def page_overview():
 
     problem_statement_md = _load_problem_statement()
 
-    with st.expander('Strategic brief', expanded=True):
+    with st.expander('Strategic brief', expanded=False):
         st.markdown(
             """
             - **Why now:** Structural shifts (automation, macro shocks, post-pandemic recovery) are widening unemployment
@@ -35,7 +35,7 @@ def page_overview():
             """
         )
 
-    with st.expander('Objectives & hypothesis', expanded=True):
+    with st.expander('Objectives & hypothesis', expanded=False):
         col_left, col_right = st.columns(2)
         with col_left:
             st.metric(label='Primary research question', value='Which occupations & industries drive unemployment swings?')
@@ -122,19 +122,5 @@ def page_overview():
             """
         )
 
-    if problem_statement_md:
-        with st.expander('View full problem statement (reference)', expanded=False):
-            st.markdown(problem_statement_md)
-    else:
+    if not problem_statement_md:
         st.info('Full problem statement file not found. Check `modules/Problem statement.md`.')
-
-    st.markdown('---')
-    with st.expander('Quick demo data', expanded=False):
-        uploaded = st.file_uploader('Optional: upload a CSV (if no DB connection)', type=['csv'])
-        if uploaded:
-            try:
-                df = pd.read_csv(uploaded)
-                st.dataframe(df.head())
-                st.info(f'Columns: {list(df.columns)}')
-            except Exception as e:
-                st.error(f'Failed to read CSV: {e}')

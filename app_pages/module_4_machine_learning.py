@@ -780,7 +780,7 @@ def module_4_page(engine: Optional[object]):
         suspicious_placeholder = True
 
     if suspicious_placeholder:
-        with st.expander('Year override options', expanded=True):
+        with st.expander('Year override options', expanded=False):
             st.warning('Detected placeholder year values (e.g., 1970). Provide a start year to reconstruct a sequential axis if the dataset lacks explicit years.')
             override_enabled = st.checkbox('Override with sequential years', value=True, key='module4_year_override_enabled')
             if override_enabled:

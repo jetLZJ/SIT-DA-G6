@@ -26,20 +26,24 @@ def page_hypothesis(engine: Optional[sqlalchemy.engine.Engine]) -> None:
     overview.page_overview()
 
 
-def page_data_processing_methodology(engine: Optional[sqlalchemy.engine.Engine]) -> None:
-    """Bundle the end-to-end data engineering workflow across Modules 1 to 3."""
-    st.header('Data Processing Methodology')
-    st.caption('From raw labour-force extracts to trusted analytics-ready tables.')
-    with st.expander('Module 1 — Data Fundamentals & SQL (Schema, provenance, validation)', expanded=True):
+def page_data_processing_and_analysis_methodology(engine: Optional[sqlalchemy.engine.Engine]) -> None:
+    """Bundle the end-to-end data engineering and exploratory analysis workflow across Modules 1 to 3."""
+    st.header('Data Processing and Analysis Methodology')
+    st.caption('From raw labour-force extracts through diagnostics to analytics-ready tables.')
+    with st.expander('Module 1 — Data Fundamentals & SQL (Schema, provenance, validation)', expanded=False):
         data_schema.page_data_and_schema(engine)
-    with st.expander('Modules 2 & 3 — Cleaning, EDA & Feature Preparation', expanded=True):
-        cleaning_eda.page_cleaning_and_eda(engine)
+    with st.expander('Module 2 — Data cleaning & preparation', expanded=False):
+        cleaning_eda.page_cleaning_module_two(engine)
+    with st.expander('Module 3 — Exploratory Diagnostics & Visualisation', expanded=False):
+        cleaning_eda.page_visualisation_module_three(engine)
 
 
 def page_modelling_methodology(engine: Optional[sqlalchemy.engine.Engine]) -> None:
     """Showcase the machine learning experimentation and evaluation flow."""
     st.header('Modelling Methodology')
     st.caption('Forecasting and risk classification pipeline aligned to the unemployment hypothesis.')
+    with st.expander('Feature engineering — deriving employed_count', expanded=False):
+        cleaning_eda.render_employed_count_feature(engine)
     module_4_machine_learning.module_4_page(engine)
 
 
@@ -73,7 +77,7 @@ def main():
         'Go to',
         [
             'Hypothesis',
-            'Data Processing Methodology',
+            'Data Processing and Analysis Methodology',
             'Modelling Methodology',
             'Learnings',
         ],
@@ -81,8 +85,8 @@ def main():
 
     if page == 'Hypothesis':
         page_hypothesis(engine)
-    elif page == 'Data Processing Methodology':
-        page_data_processing_methodology(engine)
+    elif page == 'Data Processing and Analysis Methodology':
+        page_data_processing_and_analysis_methodology(engine)
     elif page == 'Modelling Methodology':
         page_modelling_methodology(engine)
     elif page == 'Learnings':
