@@ -143,6 +143,46 @@ def _ensure_year_int(df_in: pd.DataFrame):
     return df_out
 
 
+def _ensure_year_datetime(df_in: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Add a `year_dt` datetime column wherever possible and capture conversion metadata."""
+
+    df_out = df_in.copy()
+    info: dict[str, object] = {
+        'source_column': None,
+        'source_dtype': None,
+        'conversion_status': 'skipped',
+        'non_null_converted': 0,
+    }
+
+    year_series = None
+    source_col = None
+    if 'year' in df_out.columns:
+        source_col = 'year'
+        year_series = df_out['year']
+    elif 'year_yr' in df_out.columns:
+        source_col = 'year_yr'
+        year_series = df_out['year_yr']
+
+    if year_series is not None:
+        info['source_column'] = source_col
+        info['source_dtype'] = str(year_series.dtype)
+        if pd.api.types.is_datetime64_any_dtype(year_series) or pd.api.types.is_datetime64_dtype(year_series):
+            converted = pd.to_datetime(year_series, errors='coerce')
+        else:
+            year_numeric = pd.to_numeric(year_series, errors='coerce')
+            if year_numeric.notna().any():
+                converted = pd.to_datetime(year_numeric.round().astype('Int64'), format='%Y', errors='coerce')
+            else:
+                converted = pd.to_datetime(year_series, errors='coerce')
+        df_out['year_dt'] = converted
+        info['conversion_status'] = 'success' if converted.notna().any() else 'no_valid_rows'
+        info['non_null_converted'] = int(converted.notna().sum())
+    else:
+        info['conversion_status'] = 'no_source'
+
+    return df_out, info
+
+
 def load_long_wide_from_db(engine: sqlalchemy.engine.Engine) -> tuple[dict, dict]:
     """Load long and wide tables into dicts (table_name -> DataFrame)."""
     inspector = sqlalchemy.inspect(engine)
@@ -235,7 +275,7 @@ def _select_rate_column(df: pd.DataFrame) -> Optional[str]:
 
 
 def page_cleaning_module_two(engine: Optional[sqlalchemy.engine.Engine]):
-    st.title('Module 2 — Data cleaning & feature preparation')
+    st.title('Module 2 — Data cleaning & checking')
 
     tables = _get_long_tables(engine, show_uploader=False)
     if not tables:
@@ -249,7 +289,10 @@ def page_cleaning_module_two(engine: Optional[sqlalchemy.engine.Engine]):
     df_raw = tables[selected_table]
     df_clean, mapping = _normalize_and_compute_rates(df_raw)
     df_clean = _ensure_year_int(df_clean)
+    df_clean, year_conversion_info = _ensure_year_datetime(df_clean)
     _set_active_dataframe(df_clean, selected_table)
+    st.session_state['module23_column_mapping'] = mapping
+    st.session_state['module23_year_conversion'] = year_conversion_info
 
     outlier_table_options = sorted(tables.keys())
     default_outlier_table = st.session_state.get('module23_outlier_table', selected_table)
@@ -261,10 +304,7 @@ def page_cleaning_module_two(engine: Optional[sqlalchemy.engine.Engine]):
         key='module23_outlier_table'
     )
 
-    with st.expander('Step 1 — Column normalisation summary', expanded=False):
-        st.json(mapping)
-
-    with st.expander('Step 2 — Data health checks', expanded=False):
+    with st.expander('Step 1 — Data health checks', expanded=False):
         info_col, missing_col = st.columns(2)
         with info_col:
             st.markdown('**Data types**')
@@ -285,6 +325,28 @@ def page_cleaning_module_two(engine: Optional[sqlalchemy.engine.Engine]):
                 st.metric('Total duplicates', dup_count)
                 if dup_count:
                     st.dataframe(df_clean[df_clean.duplicated()].head(), use_container_width=True)
+
+    with st.expander('Step 2 — Convert year from float to datetime', expanded=False):
+        conversion_meta = st.session_state.get('module23_year_conversion', {})
+        source_column = conversion_meta.get('source_column')
+        if source_column is None:
+            st.info('No year-like column detected yet. Load a dataset containing `year` or `year_yr`.')
+        elif 'year_dt' not in df_clean.columns:
+            st.warning('Conversion metadata is present but the `year_dt` column is missing. Re-run Module 2 loading step.')
+        else:
+            st.caption(
+                f"Converted `{source_column}` ({conversion_meta.get('source_dtype')}) into `year_dt` (datetime64)."
+            )
+            preview = pd.DataFrame({
+                source_column: df_clean[source_column].head(),
+                'year_dt': df_clean['year_dt'].head()
+            })
+            st.dataframe(preview, use_container_width=True)
+            st.metric('Rows with valid datetime', int(conversion_meta.get('non_null_converted', 0)))
+            if df_clean['year_dt'].isna().any():
+                st.warning('Some rows remain without a valid datetime. Inspect the source data for malformed years.')
+            else:
+                st.success('All rows now include a datetime representation for year.')
 
     with st.expander('Step 3 — Outlier discovery across long tables', expanded=False):
         outlier_raw = tables[outlier_table]

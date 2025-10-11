@@ -69,7 +69,6 @@ def page_overview():
             - **Human capital lens:** How do education tiers, gender and age groups mediate unemployment risk within each
               occupation family?
             - **Comparative lens:** Are high-skill/PMET roles structurally more resilient than lower-skill roles?
-            - **Technology lens:** Do automation-exposed jobs display disproportionate risk?
             """
         )
 

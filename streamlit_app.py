@@ -32,7 +32,7 @@ def page_data_processing_and_analysis_methodology(engine: Optional[sqlalchemy.en
     st.caption('From raw labour-force extracts through diagnostics to analytics-ready tables.')
     with st.expander('Module 1 — Data Fundamentals & SQL (Schema, provenance, validation)', expanded=False):
         data_schema.page_data_and_schema(engine)
-    with st.expander('Module 2 — Data cleaning & preparation', expanded=False):
+    with st.expander('Module 2 — Data cleaning and checking', expanded=False):
         cleaning_eda.page_cleaning_module_two(engine)
     with st.expander('Module 3 — Exploratory Diagnostics & Visualisation', expanded=False):
         cleaning_eda.page_visualisation_module_three(engine)
@@ -42,7 +42,13 @@ def page_modelling_methodology(engine: Optional[sqlalchemy.engine.Engine]) -> No
     """Showcase the machine learning experimentation and evaluation flow."""
     st.header('Modelling Methodology')
     st.caption('Forecasting and risk classification pipeline aligned to the unemployment hypothesis.')
-    with st.expander('Feature engineering — deriving employed_count', expanded=False):
+    with st.expander('Step 1 — Column normalisation summary', expanded=False):
+        mapping = st.session_state.get('module23_column_mapping')  # type: ignore[attr-defined]
+        if mapping:
+            st.json(mapping)
+        else:
+            st.info('Run Module 2 first to capture the latest column normalisation details.')
+    with st.expander('Step 2 — Feature engineering — deriving employed_count', expanded=False):
         cleaning_eda.render_employed_count_feature(engine)
     module_4_machine_learning.module_4_page(engine)
 
