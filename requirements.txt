@@ -10,3 +10,4 @@ plotly
 dotenv
 mysql-connector-python
 matplotlib
+scikit-learn>=1.3

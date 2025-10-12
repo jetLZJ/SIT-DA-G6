@@ -102,34 +102,24 @@ def page_overview():
         inventory = pd.DataFrame(
             [
                 {
-                    'Dimension': 'Time coverage',
-                    'Module source': 'Module 1 — Data Fundamentals',
-                    'Database assets': '`unemployment_rate_by_occupation_long`, `unemployed_by_age_sex_long`, `unemployed_by_qualification_sex_long`',
-                    'Status / notes': 'Years 2014-2024 already normalised into long tables (year column ready for trend & forecasting).',
+                    'Module & focus': 'Module 1 — Data Fundamentals & SQL',
+                    'Key data assets': '`unemployment_rate_by_occupation_long`, `unemployed_by_age_sex_long`, `unemployed_by_qualification_sex_long`, `unemployed_by_previous_occupation_sex_long`',
+                    'Readiness checks': 'SQL loaders executed; 2014-2024 coverage verified; column naming adheres to ingestion templates; stored in project database or upload-ready CSVs.',
                 },
                 {
-                    'Dimension': 'Labour structure',
-                    'Module source': 'Module 1 + Module 2',
-                    'Database assets': '`unemployed_by_previous_occupation_sex_long`, `unemployed_pmets_by_age_long`, `long_term_unemployed_pmets_by_age_long`',
-                    'Status / notes': 'Occupation / industry breakdown with unemployment_rate, unemployed_count, labour_force_count (Module 2 scripts recompute rates when needed).',
+                    'Module & focus': 'Module 2 — Cleaning & EDA',
+                    'Key data assets': 'Long-format tables with unemployed_count + labour_force_count (or precomputed unemployment_rate) plus year fields for canonicalisation.',
+                    'Readiness checks': 'Auto-detection maps resolve occupation/year columns; counts convertible to numeric; missing values <5% or flagged; year cast succeeds to `year_yr` and `year_dt`.',
                 },
                 {
-                    'Dimension': 'Demographics',
-                    'Module source': 'Module 2 — Cleaning & EDA',
-                    'Database assets': 'Same long tables joined with education_level, gender, age_group fields via notebook transformations',
-                    'Status / notes': 'Ready for stratified diagnostics; Module 2 notebooks validate dtypes/imputation.',
+                    'Module & focus': 'Module 3 — Visualisation & diagnostics',
+                    'Key data assets': 'Module 2 cleaned DataFrame (`module23_clean_df`) with `occupation`, `year`, `unemployment_rate`, plus demographic splits for share-of-burden charts.',
+                    'Readiness checks': 'Demographic columns present for `prepare_demographic_share`; computed `share_pct` free of nulls; long tables cached in session for trend/compare lenses.',
                 },
                 {
-                    'Dimension': 'Derived features',
-                    'Module source': 'Module 3 & 4 — Visualisation & feature engineering',
-                    'Database assets': 'In-app data marts assembled from canonical long tables (trend slopes, volatility, lagged rates)',
-                    'Status / notes': 'Features computed on top of Module 1/2 tables; cached in session for modelling and risk scoring.',
-                },
-                {
-                    'Dimension': 'Optional enrichments',
-                    'Module source': 'Module 2 notebooks + external lookups',
-                    'Database assets': 'Joins for `avg_wage`, `automation_risk_score` (if provided) staged in Module 2 ingestion cells',
-                    'Status / notes': 'Optional CSV/DB tables can be merged through the same pipelines when available.',
+                    'Module & focus': 'Module 4 — Machine learning & risk scoring',
+                    'Key data assets': 'Master modelling frame merged from long tables with lagged unemployment, PMET mix, qualification shares, demographic indicators, and 2025 scaffold.',
+                    'Readiness checks': 'Each occupation has ≥6 years history (2014-2024); engineered features persist without nulls; classification labels available or fall back to notebook baselines.',
                 },
             ]
         )
@@ -138,12 +128,12 @@ def page_overview():
     with st.expander('Planned analytics playbook', expanded=False):
         st.markdown(
             """
-            1. **Data hygiene:** Validate joins, normalise taxonomies, reconcile unemployment-rate calculations.
-            2. **Exploratory visuals:** Multi-year industry/occupation trendlines, heatmaps, volatility profiles.
-            3. **Stratified diagnostics:** Compare unemployment rates across education, gender, and age segments.
-            4. **Risk scoring:** Build volatility and trend slope metrics to isolate vulnerable cohorts.
-            5. **Predictive layer:** Deploy time-series forecasts and classifiers to anticipate 12-month unemployment shifts.
-            6. **Prescriptive output:** Rank reskilling priorities and map pathways to resilient sectors.
+            1. **Data hygiene:** Auto-detect canonical columns, derive unemployment rates from counts, recover year fields, and surface data-quality/outlier alerts.
+            2. **Exploratory visuals:** Deploy trend, share-of-burden, and comparative lenses to narrate decade-long occupation trajectories.
+            3. **Stratified diagnostics:** Quantify demographic exposure by education tier, gender, and age across occupation families.
+            4. **Risk scoring:** Pair volatility indicators with logistic regression probabilities to surface high-risk occupations.
+            5. **Predictive layer:** Operationalise KNN forecasts using 2014-2024 history with time-aware validation for 2025 outlooks.
+            6. **Prescriptive output:** Blend forecast + risk signals to prioritise reskilling and contingency placement support.
             """
         )
 

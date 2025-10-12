@@ -433,11 +433,11 @@ def page_cleaning_module_two(engine: Optional[sqlalchemy.engine.Engine]):
             with left_col:
                 hist_fig = px.histogram(outlier_df, x=pick_col, nbins=30, title=f'Histogram — {pick_col}')
                 hist_fig.update_layout(margin=dict(t=40, r=20, l=20, b=40))
-                st.plotly_chart(hist_fig, use_container_width=True, key='module2_histogram')
+                utils.render_plotly_chart(hist_fig, key='module2_histogram')
             with right_col:
                 box_fig = px.box(outlier_df, y=pick_col, title=f'Box plot — {pick_col}')
                 box_fig.update_layout(margin=dict(t=40, r=20, l=20, b=40))
-                st.plotly_chart(box_fig, use_container_width=True, key='module2_boxplot')
+                utils.render_plotly_chart(box_fig, key='module2_boxplot')
 
             if not outliers.empty:
                 st.markdown(f"**Outlier range**: values < {lower:,.2f} or > {upper:,.2f}")
@@ -546,7 +546,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 )
             except Exception:
                 pass
-            st.plotly_chart(fig, use_container_width=True, key='module3_trend_line')
+            utils.render_plotly_chart(fig, key='module3_trend_line')
             try:
                 latest_year = plot_df['year_yr'].max()
                 latest_snapshot = plot_df[plot_df['year_yr'] == latest_year]
@@ -592,7 +592,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 )
             except Exception:
                 pass
-            st.plotly_chart(fig_share, use_container_width=True, key='module3_share_area')
+            utils.render_plotly_chart(fig_share, key='module3_share_area')
             try:
                 latest_share_year = area_df['year'].max()
                 latest_row = area_df[area_df['year'] == latest_share_year].iloc[0, 1:]
@@ -657,7 +657,8 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
             )
         except Exception:
             pass
-        st.plotly_chart(fig_education, use_container_width=True, key='module3_education_area')
+
+        utils.render_plotly_chart(fig_education, key='module3_education_area')
         try:
             edu_latest_year = education_grouped['year'].max()
             edu_latest = education_grouped[education_grouped['year'] == edu_latest_year]
@@ -668,6 +669,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 )
         except Exception:
             st.caption('Education-tier summary unavailable because the dataset lacks a consistent year field.')
+
         st.caption('Snapshots the qualification pathways contributing to unemployment each year, highlighting cohorts for reskilling focus.')
     else:
         st.info('Qualification-level unemployment table not available in the current data connection.')
@@ -716,7 +718,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 )
             except Exception:
                 pass
-            st.plotly_chart(fig_gender, use_container_width=True, key='module3_gender_facets')
+            utils.render_plotly_chart(fig_gender, key='module3_gender_facets')
             try:
                 latest_gender_year = gender_df[gen_year].max()
                 latest_gender = gender_df[gender_df[gen_year] == latest_gender_year]
@@ -784,7 +786,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 )
             except Exception:
                 pass
-            st.plotly_chart(fig_age, use_container_width=True, key='module3_age_facets')
+            utils.render_plotly_chart(fig_age, key='module3_age_facets')
             try:
                 latest_age_year = age_df[age_year].max()
                 latest_age = age_df[age_df[age_year] == latest_age_year]
@@ -975,7 +977,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
         )
     except Exception:
         pass
-    st.plotly_chart(fig_comp, use_container_width=True, key='module3_comparative_subplots')
+    utils.render_plotly_chart(fig_comp, key='module3_comparative_subplots')
 
     latest_comp_year = skill_rate.index.max()
     latest_row = skill_rate.loc[latest_comp_year]

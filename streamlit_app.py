@@ -1,12 +1,45 @@
-import streamlit as st
+from pathlib import Path
 from typing import Optional
+
 import sqlalchemy
+import streamlit as st
 
 from app import data_loader
 from app_pages import overview, data_schema, cleaning_eda, dashboard, module_4_machine_learning
 
 
 PAGE_TITLE = 'SIT-DA Capstone — Labor Force Trends'
+ASSETS_DIR = Path(__file__).parent / 'assets'
+MODULES_DIR = Path(__file__).parent / 'modules'
+APP_LOGO_PATH = ASSETS_DIR / '4C LogoSIT Learn Lock UP logo_4C.png'
+GROUP_PHOTO_PATH = ASSETS_DIR / 'MVIMG_20251011_153643_1.jpg'
+APPENDIX_FILES = [
+    {
+        'label': 'Module 1 Appendix — Create Scripts (SQL)',
+        'path': MODULES_DIR / 'm1_appendix_create.sql',
+        'mime': 'text/sql',
+    },
+    {
+        'label': 'Module 1 Appendix — Transform Scripts (SQL)',
+        'path': MODULES_DIR / 'm1_appendix_transform.sql',
+        'mime': 'text/sql',
+    },
+    {
+        'label': 'Module 1 — Data Fundamentals (Deck)',
+        'path': MODULES_DIR / 'M1 Data Fundamentals and SQL G6 v2.docx',
+        'mime': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    },
+    {
+        'label': 'Module 2 & 3 — EDA and Visualisation Notebook',
+        'path': MODULES_DIR / 'M2 M3 EDA and Visualisation.ipynb',
+        'mime': 'application/x-ipynb+json',
+    },
+    {
+        'label': 'Module 4 — Machine Learning Notebook',
+        'path': MODULES_DIR / 'M4 Machine Learning.ipynb',
+        'mime': 'application/x-ipynb+json',
+    },
+]
 
 
 def get_db_engine() -> Optional[sqlalchemy.engine.Engine]:
@@ -38,16 +71,6 @@ def page_data_processing_and_analysis_methodology(engine: Optional[sqlalchemy.en
 
 def page_modelling_methodology(engine: Optional[sqlalchemy.engine.Engine]) -> None:
     """Showcase the machine learning experimentation and evaluation flow."""
-    st.header('Modelling Methodology')
-    st.caption('Forecasting and risk classification pipeline aligned to the unemployment hypothesis.')
-    with st.expander('Step 1 — Column normalisation summary', expanded=False):
-        mapping = st.session_state.get('module23_column_mapping')  # type: ignore[attr-defined]
-        if mapping:
-            st.json(mapping)
-        else:
-            st.info('Run Module 2 first to capture the latest column normalisation details.')
-    with st.expander('Step 2 — Feature engineering — deriving employed_count', expanded=False):
-        cleaning_eda.render_employed_count_feature(engine)
     module_4_machine_learning.module_4_page(engine)
 
 
@@ -68,9 +91,49 @@ def page_learnings(engine: Optional[sqlalchemy.engine.Engine]) -> None:
         """
     )
 
+    st.markdown('### Closing reflections')
+    st.markdown(
+        """
+        The capstone journey brought multiple disciplines together—SQL engineering, exploratory diagnostics,
+        predictive modelling, stakeholder storytelling and BI tooling. Thank you to every mentor who supported the push from raw extracts to a decision-ready analytics asset.
+        Also, a big thank you to all our classmates who walked beside us through the highs and lows — your support made this journey unforgettable.
+        """
+    )
+
+    if GROUP_PHOTO_PATH.exists():
+        st.image(
+            str(GROUP_PHOTO_PATH),
+            caption='SIT Data Analytics Group 6 — October 2025',
+            width='stretch',
+        )
+    else:
+        st.info(f'Group photo not found at {GROUP_PHOTO_PATH}.')
+
+    st.markdown('### Appendix & downloads')
+    with st.expander('Capstone artefacts', expanded=False):
+        for artifact in APPENDIX_FILES:
+            file_path = artifact['path']
+            if file_path.exists():
+                file_bytes = file_path.read_bytes()
+                st.download_button(
+                    label=f"Download {artifact['label']}",
+                    data=file_bytes,
+                    file_name=file_path.name,
+                    mime=artifact.get('mime', 'application/octet-stream'),
+                    key=f"download_{file_path.stem}",
+                )
+            else:
+                st.warning(f"{artifact['label']} not found at {file_path}.")
+
 def main():
-    st.set_page_config(page_title=PAGE_TITLE, layout='wide')
+    if APP_LOGO_PATH.exists():
+        st.set_page_config(page_title=PAGE_TITLE, layout='wide', page_icon=str(APP_LOGO_PATH))
+    else:
+        st.set_page_config(page_title=PAGE_TITLE, layout='wide')
     st.title(PAGE_TITLE)
+
+    if APP_LOGO_PATH.exists():
+        st.sidebar.image(str(APP_LOGO_PATH), caption='Data Analytics Group 6', width='stretch')
 
     engine = get_db_engine()
 
