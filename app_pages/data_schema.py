@@ -113,9 +113,8 @@ def page_data_and_schema(engine: sqlalchemy.engine.Engine | None):
     st.header('Module 1 — Data Fundamentals & SQL')
     st.markdown(
         """
-        Following the Module 1 "Data Fundamentals & SQL" notes, we begin by importing the Ministry of Manpower wide tables
-        (Appendix 1) and recreating them in long form via UNION ALL stacks (Appendix 2). This mirrors the documented
-        workflow: load the raw extracts, reshape them so each row captures a single year-dimension observation, and carry
+        We begin by importing the Ministry of Manpower wide tables (Appendix 1) and recreating them in long form via UNION ALL stacks (Appendix 2). 
+        \n This mirrors the documented workflow: load the raw extracts, reshape them so each row captures a single year-dimension observation, and carry
         those transformed assets forward for consistency checks and downstream analytics.
         """
     )
@@ -244,11 +243,9 @@ CREATE TABLE unemployed_by_age_sex_long AS
                 stored_wide = st.session_state.get('m1_wide_select')
                 if stored_wide not in paired_wide:
                     st.session_state['m1_wide_select'] = paired_wide[0]
-                wide_index = paired_wide.index(st.session_state['m1_wide_select']) if st.session_state.get('m1_wide_select') in paired_wide else 0
                 wide_choice = st.selectbox(
                     'Select a wide table to preview',
                     options=paired_wide,
-                    index=wide_index,
                     key='m1_wide_select',
                     on_change=_sync_long_from_wide
                 )
@@ -283,11 +280,9 @@ CREATE TABLE unemployed_by_age_sex_long AS
                     else:
                         proposed_default = long_options[0]
                     st.session_state['m1_long_select'] = proposed_default
-                long_index = long_options.index(st.session_state['m1_long_select'])
                 validate_table = st.selectbox(
                     'Select a long table to profile',
                     options=long_options,
-                    index=long_index,
                     key='m1_long_select'
                 )
             else:

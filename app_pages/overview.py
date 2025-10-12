@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from pathlib import Path
 from typing import Optional
@@ -19,10 +20,27 @@ def _load_problem_statement() -> Optional[str]:
 
 
 def page_overview():
-    st.header('Project overview')
-    st.caption('Singapore labour market resilience and unemployment risk signals')
 
     problem_statement_md = _load_problem_statement()
+
+    st.subheader('Singapore Labour Force (Unemployment Insights)')
+    default_embed_url = st.secrets.get('POWERBI_EMBED_URL', '')
+    embed_url = st.text_input('Power BI embed URL', value=default_embed_url, placeholder='https://app.powerbi.com/...', key='overview_powerbi_url')
+
+    if embed_url:
+        components.iframe(embed_url, height=780)
+    else:
+        st.info('Provide a Power BI embed URL (from Publish to web or a secure embed token flow) to display the report here.')
+
+    # with st.expander('How to generate the embed URL', expanded=False):
+    #     st.markdown(
+    #         '''
+    #         1. In Power BI Service, open the report in your workspace.
+    #         2. Select **File → Embed report** and choose either **Publish to web** (public data only) or **Website or portal** for secure embeds.
+    #         3. Copy the generated embed URL. For secure embeds, ensure the consuming account has permission to view the report.
+    #         4. Paste the URL above or store it in `st.secrets["POWERBI_EMBED_URL"]` for persistence.
+    #         '''
+    #     )
 
     with st.expander('Strategic brief', expanded=False):
         st.markdown(
@@ -38,7 +56,15 @@ def page_overview():
     with st.expander('Objectives & hypothesis', expanded=False):
         col_left, col_right = st.columns(2)
         with col_left:
-            st.metric(label='Primary research question', value='Which occupations & industries drive unemployment swings?')
+            st.markdown('**Primary research question**')
+            st.markdown(
+                """
+                <p style="font-size:1.6rem;font-weight:600;margin-top:0.25rem;margin-bottom:1.5rem;">
+                    Which occupations &amp; industries drive unemployment swings?
+                </p>
+                """,
+                unsafe_allow_html=True,
+            )
             st.markdown(
                 """
                 **Objectives**
@@ -95,7 +121,7 @@ def page_overview():
                 },
                 {
                     'Dimension': 'Derived features',
-                    'Module source': 'Module 3 — Visualisation & feature engineering',
+                    'Module source': 'Module 3 & 4 — Visualisation & feature engineering',
                     'Database assets': 'In-app data marts assembled from canonical long tables (trend slopes, volatility, lagged rates)',
                     'Status / notes': 'Features computed on top of Module 1/2 tables; cached in session for modelling and risk scoring.',
                 },

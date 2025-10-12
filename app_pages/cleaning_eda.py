@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Iterable, cast
 import sqlalchemy
 
 from app import data_loader, utils, viz
@@ -181,6 +183,68 @@ def _ensure_year_datetime(df_in: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         info['conversion_status'] = 'no_source'
 
     return df_out, info
+
+
+def _find_column(df: pd.DataFrame, keywords: Iterable[str]) -> Optional[str]:
+    """Return the first column whose lowercase name contains any of the keywords."""
+    lowered = {col.lower(): col for col in df.columns}
+    for key in keywords:
+        key_lower = key.lower()
+        for col_lower, original in lowered.items():
+            if key_lower in col_lower:
+                return original
+    return None
+
+
+def prepare_demographic_share(
+    df: pd.DataFrame,
+    dimension_keywords: Iterable[str],
+    *,
+    collapse_gender: bool = False,
+) -> tuple[pd.DataFrame, str, str, str, str]:
+    """Normalise a long-format table so that each row expresses the percentage share per demographic dimension."""
+
+    df_work = df.copy()
+    year_col = _find_column(df_work, ['year'])
+    occ_col = _find_column(df_work, ['occupation'])
+    dim_col = _find_column(df_work, dimension_keywords)
+    count_col = _find_column(df_work, ['unemployed_count', 'unemployment_count', 'unemp_count'])
+
+    if not all([year_col, dim_col, count_col]):
+        raise KeyError('Missing required columns for share computation.')
+
+    if not occ_col:
+        temp_occ_col = '__occupation__'
+        df_work[temp_occ_col] = 'Overall'
+        occ_col = temp_occ_col
+
+    year_col = cast(str, year_col)
+    dim_col = cast(str, dim_col)
+    count_col = cast(str, count_col)
+    occ_col = cast(str, occ_col)
+
+    if collapse_gender:
+        gender_col = _find_column(df_work, ['gender', 'sex'])
+        if gender_col:
+            group_cols = [col for col in [year_col, occ_col, dim_col] if col]
+            df_work = df_work.groupby(group_cols, as_index=False)[count_col].sum()
+
+    if year_col:
+        if pd.api.types.is_datetime64_any_dtype(df_work[year_col]):
+            df_work[year_col] = df_work[year_col].dt.year
+        else:
+            df_work[year_col] = pd.to_numeric(df_work[year_col], errors='coerce')
+
+    df_work[count_col] = pd.to_numeric(df_work[count_col], errors='coerce')
+    df_work = df_work.dropna(subset=[year_col, dim_col, count_col])  # type: ignore[arg-type]
+
+    group_cols = [col for col in [year_col, occ_col] if col]
+    totals = df_work.groupby(group_cols)[count_col].transform('sum')
+    df_work = df_work[totals > 0].copy()
+    df_work['share_pct'] = (df_work[count_col] / totals.loc[df_work.index]) * 100.0
+    df_work = df_work.dropna(subset=['share_pct'])
+
+    return df_work, year_col, occ_col, dim_col, count_col
 
 
 def load_long_wide_from_db(engine: sqlalchemy.engine.Engine) -> tuple[dict, dict]:
@@ -369,11 +433,11 @@ def page_cleaning_module_two(engine: Optional[sqlalchemy.engine.Engine]):
             with left_col:
                 hist_fig = px.histogram(outlier_df, x=pick_col, nbins=30, title=f'Histogram — {pick_col}')
                 hist_fig.update_layout(margin=dict(t=40, r=20, l=20, b=40))
-                st.plotly_chart(hist_fig, use_container_width=True)
+                st.plotly_chart(hist_fig, use_container_width=True, key='module2_histogram')
             with right_col:
                 box_fig = px.box(outlier_df, y=pick_col, title=f'Box plot — {pick_col}')
                 box_fig.update_layout(margin=dict(t=40, r=20, l=20, b=40))
-                st.plotly_chart(box_fig, use_container_width=True)
+                st.plotly_chart(box_fig, use_container_width=True, key='module2_boxplot')
 
             if not outliers.empty:
                 st.markdown(f"**Outlier range**: values < {lower:,.2f} or > {upper:,.2f}")
@@ -412,12 +476,12 @@ def render_employed_count_feature(engine: Optional[sqlalchemy.engine.Engine]):
 def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
     st.title('Module 3 — Visual storytelling & diagnostics')
 
+    tables = _get_long_tables(engine, show_uploader=False)
     df_active, table_name = _get_active_dataframe(engine, allow_refresh=False)
+
     if df_active is None or table_name is None:
         st.info('Load a dataset in Module 2 first, or ensure a database connection is available.')
         return
-
-    st.caption(f'Using **{table_name}** — {df_active.shape[0]} rows × {df_active.shape[1]} columns')
 
     df_active = _ensure_year_int(df_active.copy())
     rate_col = _select_rate_column(df_active)
@@ -429,9 +493,16 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
         st.warning('Active dataset is missing an `occupation` column required for Module 3 visuals.')
         return
 
+    st.markdown(
+        """
+        ### Trend lens — Unemployment trajectories across occupation groups
+        This lens follows decade-long unemployment patterns to pinpoint persistent pressure points and structural gaps. The charts below show (1) trajectories for the occupations you care most about, (2) how the average gap between high- versus low-skill roles widens during shocks, and (3) the proportion of total unemployment carried by each occupation family.
+        """
+    )
+
     occupations = sorted(df_active['occupation'].dropna().unique().tolist())
 
-    st.subheader('Trend: unemployment rate by occupation')
+    st.markdown('#### Occupation trajectories')
     if occupations:
         pick_mode = st.radio(
             'Occupation selection strategy',
@@ -455,10 +526,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
 
         if not trend_df.empty:
             plot_df = _ensure_year_int(trend_df.copy())
-            if rate_col == 'unemployment_rate':
-                plot_df['plot_unemp_pct'] = plot_df[rate_col] * 100.0
-            else:
-                plot_df['plot_unemp_pct'] = plot_df[rate_col]
+            plot_df['plot_unemp_pct'] = plot_df[rate_col] * (100.0 if rate_col == 'unemployment_rate' else 1.0)
 
             fig = px.line(plot_df, x='year_yr', y='plot_unemp_pct', color='occupation', markers=True, title='Unemployment rate by occupation')
             fig.update_yaxes(title='Unemployment rate (%)')
@@ -467,14 +535,281 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 fig.update_xaxes(tickmode='linear', tick0=min_year, dtick=1)
             except Exception:
                 pass
-            st.plotly_chart(fig, use_container_width=True)
+            try:
+                fig.add_vrect(
+                    x0=2019.5,
+                    x1=2021.5,
+                    fillcolor='rgba(255, 165, 0, 0.15)',
+                    line_width=0,
+                    annotation_text='COVID shock (2020-2021)',
+                    annotation_position='top left',
+                )
+            except Exception:
+                pass
+            st.plotly_chart(fig, use_container_width=True, key='module3_trend_line')
+            try:
+                latest_year = plot_df['year_yr'].max()
+                latest_snapshot = plot_df[plot_df['year_yr'] == latest_year]
+                if not latest_snapshot.empty:
+                    top_row = latest_snapshot.loc[latest_snapshot['plot_unemp_pct'].idxmax()]
+                    bottom_row = latest_snapshot.loc[latest_snapshot['plot_unemp_pct'].idxmin()]
+                    st.markdown(
+                        f"*{latest_year} snapshot:* **{top_row['occupation']}** led the unemployment rate at {top_row['plot_unemp_pct']:.1f}% while **{bottom_row['occupation']}** was lowest among the selected occupations at {bottom_row['plot_unemp_pct']:.1f}%."
+                    )
+            except Exception:
+                st.caption('Latest-year summary unavailable due to inconsistent occupation data.')
         else:
             st.info('No rows available for the selected occupations.')
     else:
         st.info('No occupation values available for trend analysis.')
 
+    st.markdown('#### Share of unemployment burden')
+    share_df = _ensure_year_int(df_active.copy())
+    if 'year_yr' in share_df.columns:
+        share_df['plot_unemp_pct'] = share_df[rate_col] * (100.0 if rate_col == 'unemployment_rate' else 1.0)
+        pivot_sum = share_df.pivot_table(index='year_yr', columns='occupation', values='plot_unemp_pct', aggfunc='sum').fillna(0)
+        row_totals = pivot_sum.sum(axis=1)
+        non_zero = row_totals.replace(0, pd.NA)
+        prop = pivot_sum.divide(non_zero, axis=0).dropna(how='all')
+        if prop.empty:
+            st.info('Not enough non-zero data to compute share of unemployment.')
+        else:
+            area_df = prop.reset_index().rename(columns={'year_yr': 'year'})
+            fig_share = px.area(area_df, x='year', y=area_df.columns[1:], title='Share of unemployment by occupation')
+            try:
+                min_year_share = int(area_df['year'].min())
+                fig_share.update_xaxes(tickmode='linear', tick0=min_year_share, dtick=1)
+            except Exception:
+                pass
+            try:
+                fig_share.add_vrect(
+                    x0=2019.5,
+                    x1=2021.5,
+                    fillcolor='rgba(255, 165, 0, 0.15)',
+                    line_width=0,
+                    row='all',
+                    col='all',
+                )
+            except Exception:
+                pass
+            st.plotly_chart(fig_share, use_container_width=True, key='module3_share_area')
+            try:
+                latest_share_year = area_df['year'].max()
+                latest_row = area_df[area_df['year'] == latest_share_year].iloc[0, 1:]
+                top_occ = latest_row.idxmax()
+                top_share = latest_row.max() * 100 if latest_row.max() <= 1 else latest_row.max()
+                st.markdown(
+                    f"*{latest_share_year} mix:* **{top_occ}** carried the largest unemployment burden, accounting for approximately {top_share:.1f}% of total unemployed workers."
+                )
+            except Exception:
+                st.caption('Share breakdown summary unavailable because the latest year record is incomplete.')
+    else:
+        st.info('Year information is missing; unable to compute share of unemployment.')
+
     st.markdown('---')
-    st.subheader('Skill-level comparison (High vs Low)')
+    st.markdown(
+        """
+        ### Human capital lens — demographic mediators of unemployment risk
+        We break down unemployment burden by education tier, gender, and age group across high-volume occupation families. These views surface which cohorts drive vulnerability and where targeted interventions can deliver the biggest lift.
+        """
+    )
+
+    education_raw = tables.get('unemployed_by_qualification_sex_long') if tables else None
+    st.markdown('#### Education tiers within occupation families')
+    if education_raw is not None:
+        education_grouped = education_raw.groupby(['year', 'education'])['unemployed_count'].sum().reset_index()
+        if pd.api.types.is_datetime64_any_dtype(education_grouped['year']):
+            education_grouped['year'] = education_grouped['year'].dt.year
+        education_grouped['total_by_year'] = education_grouped.groupby('year')['unemployed_count'].transform('sum')
+        education_grouped = education_grouped[education_grouped['total_by_year'] > 0].copy()
+        education_grouped['share_pct'] = (education_grouped['unemployed_count'] / education_grouped['total_by_year']) * 100
+
+        edu_order = [
+            'Below Secondary',
+            'Secondary',
+            'Post-Secondary (Non-Tertiary)',
+            'Diploma & Professional Qualification',
+            'Degree',
+        ]
+        colors = px.colors.qualitative.Bold
+        fig_education = px.area(
+            education_grouped,
+            x='year',
+            y='share_pct',
+            color='education',
+            color_discrete_map={edu: colors[i % len(colors)] for i, edu in enumerate(edu_order)},
+            category_orders={'education': edu_order},
+            labels={'year': 'Year', 'share_pct': 'Share of unemployed (%)', 'education': 'Education tier'},
+            title='Education tiers driving unemployment share over time',
+            height=650,
+            hover_data={'unemployed_count': ':.1f', 'share_pct': ':.1f'}
+        )
+        fig_education.update_yaxes(range=[0, 100])
+        fig_education.update_layout(legend_title_text='Education tier', hovermode='x unified', legend=dict(traceorder='reversed'))
+        try:
+            fig_education.add_vrect(
+                x0=2019.5,
+                x1=2021.5,
+                fillcolor='rgba(255, 165, 0, 0.15)',
+                line_width=0,
+                row='all',
+                col='all',
+            )
+        except Exception:
+            pass
+        st.plotly_chart(fig_education, use_container_width=True, key='module3_education_area')
+        try:
+            edu_latest_year = education_grouped['year'].max()
+            edu_latest = education_grouped[education_grouped['year'] == edu_latest_year]
+            if not edu_latest.empty:
+                top_tier = edu_latest.loc[edu_latest['share_pct'].idxmax()]
+                st.markdown(
+                    f"*{edu_latest_year} education profile:* **{top_tier['education']}** contributed the highest share of unemployment at {top_tier['share_pct']:.1f}% across all tiers."
+                )
+        except Exception:
+            st.caption('Education-tier summary unavailable because the dataset lacks a consistent year field.')
+        st.caption('Snapshots the qualification pathways contributing to unemployment each year, highlighting cohorts for reskilling focus.')
+    else:
+        st.info('Qualification-level unemployment table not available in the current data connection.')
+
+    st.markdown('#### Gender exposure within occupation families')
+    try:
+        gender_raw = tables.get('unemployed_by_previous_occupation_sex_long') if tables else None
+        if gender_raw is None:
+            raise KeyError('Table unavailable')
+        gender_df, gen_year, gen_occ, gen_dim, gen_count = prepare_demographic_share(gender_raw, ['gender', 'sex'])
+        top_gender_occupations = (
+            gender_df.groupby(gen_occ)[gen_count]
+            .sum()
+            .sort_values(ascending=False)
+            .head(6)
+            .index
+        )
+        gender_focus = gender_df[gender_df[gen_occ].isin(top_gender_occupations)].copy()
+        if gender_focus.empty:
+            st.info('Gender table lacks sufficient occupation-level detail for plotting.')
+        else:
+            fig_gender = px.area(
+                gender_focus,
+                x=gen_year,
+                y='share_pct',
+                color=gen_dim,
+                facet_col=gen_occ,
+                facet_col_wrap=3,
+                category_orders={gen_dim: sorted(gender_focus[gen_dim].unique())},
+                color_discrete_map={'Female': 'pink', 'Male': 'blue'},
+                labels={gen_year: 'Year', 'share_pct': 'Share of unemployed (%)', gen_dim: 'Gender'},
+                title='Gender share of unemployment within top occupations',
+                height=650,
+            )
+            fig_gender.update_yaxes(matches=None, range=[0, 100])
+            fig_gender.for_each_annotation(lambda a: a.update(text=a.text.split('=')[-1]))
+            fig_gender.update_layout(legend_title_text='Gender', hovermode='x unified')
+            try:
+                fig_gender.add_vrect(
+                    x0=2019.5,
+                    x1=2021.5,
+                    fillcolor='rgba(255, 165, 0, 0.15)',
+                    line_width=0,
+                    row='all',
+                    col='all',
+                )
+            except Exception:
+                pass
+            st.plotly_chart(fig_gender, use_container_width=True, key='module3_gender_facets')
+            try:
+                latest_gender_year = gender_df[gen_year].max()
+                latest_gender = gender_df[gender_df[gen_year] == latest_gender_year]
+                totals = latest_gender.groupby(gen_dim)[gen_count].sum()
+                total_sum = totals.sum()
+                if total_sum > 0:
+                    dominant_gender = totals.idxmax()
+                    dominant_pct = (totals.max() / total_sum) * 100
+                    st.markdown(
+                        f"*{latest_gender_year} gender exposure:* **{dominant_gender}** accounted for roughly {dominant_pct:.1f}% of unemployment across these occupation families."
+                    )
+            except Exception:
+                st.caption('Gender summary unavailable because the latest-year counts are incomplete.')
+            st.caption('Shows where female or male unemployment surges, guiding targeted support such as childcare or redeployment programmes.')
+    except KeyError:
+        st.info('Previous occupation by gender table not available in the current data connection.')
+
+    st.markdown('#### Age group differentials within occupation families')
+    try:
+        age_raw = tables.get('unemployed_by_age_sex_long') if tables else None
+        if age_raw is None:
+            raise KeyError('Table unavailable')
+        age_df, age_year, age_occ, age_dim, age_count = prepare_demographic_share(age_raw, ['age_group', 'ageband', 'age bracket', 'age'], collapse_gender=True)
+        if len(age_df[age_occ].unique()) == 1:
+            top_age_occupations = age_df[age_occ].unique()
+        else:
+            top_age_occupations = (
+                age_df.groupby(age_occ)[age_count]
+                .sum()
+                .sort_values(ascending=False)
+                .head(6)
+                .index
+            )
+        age_focus = age_df[age_df[age_occ].isin(top_age_occupations)].copy()
+        if age_focus.empty:
+            st.info('Age table lacks sufficient occupation-level detail for plotting.')
+        else:
+            age_focus[age_year] = age_focus[age_year].round().astype(int)
+            age_groups = sorted(age_focus[age_dim].unique())
+            color_map = {age: px.colors.qualitative.Bold[i % len(px.colors.qualitative.Bold)] for i, age in enumerate(age_groups)}
+            fig_age = px.bar(
+                age_focus,
+                x=age_year,
+                y='share_pct',
+                color=age_dim,
+                facet_col=age_occ,
+                facet_col_wrap=3,
+                category_orders={age_dim: age_groups},
+                color_discrete_map=color_map,
+                labels={age_year: 'Year', 'share_pct': 'Share of unemployed (%)', age_dim: 'Age group'},
+                title='Age group share of unemployment within top occupations',
+                height=650,
+            )
+            fig_age.update_layout(barnorm='percent', hovermode='x unified', legend_title_text='Age group')
+            fig_age.update_yaxes(matches=None, range=[0, 100], title='Share of unemployed (%)')
+            fig_age.for_each_annotation(lambda a: a.update(text=a.text.split('=')[-1]))
+            try:
+                fig_age.add_vrect(
+                    x0=2019.5,
+                    x1=2021.5,
+                    fillcolor='rgba(255, 165, 0, 0.15)',
+                    line_width=0,
+                    row='all',
+                    col='all',
+                )
+            except Exception:
+                pass
+            st.plotly_chart(fig_age, use_container_width=True, key='module3_age_facets')
+            try:
+                latest_age_year = age_df[age_year].max()
+                latest_age = age_df[age_df[age_year] == latest_age_year]
+                age_totals = latest_age.groupby(age_dim)[age_count].sum()
+                age_total_sum = age_totals.sum()
+                if age_total_sum > 0:
+                    dominant_age = age_totals.idxmax()
+                    dominant_age_pct = (age_totals.max() / age_total_sum) * 100
+                    st.markdown(
+                        f"*{int(latest_age_year)} age focus:* **{dominant_age}** made up about {dominant_age_pct:.1f}% of unemployed jobseekers in the highlighted occupations."
+                    )
+            except Exception:
+                st.caption('Age profile summary unavailable because the latest-year counts are incomplete.')
+            st.caption('Highlights dominant age cohorts inside each occupation family and flags sudden shifts that may need reskilling attention.')
+    except KeyError:
+        st.info('Age-based unemployment table not available in the current data connection.')
+
+    st.markdown('---')
+    st.markdown(
+        """
+        ### Comparative lens — Resilience of high- vs low-skill occupations
+        We benchmark high-skill PMET roles against lower-skill occupation groups to confirm whether structural resilience persists even after the pandemic shock. Persistent gaps highlight where policy buffers remain critical.
+        """
+    )
+
     default_high_skill = [
         'Professionals',
         'Managers & Administrators (Including Working Proprietors)',
@@ -487,123 +822,189 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
         'Craftsmen & Related Trades Workers',
         'Plant & Machine Operators & Assemblers',
     ]
-    use_defaults = st.checkbox('Use notebook default skill mapping', value=True, key='module23_skill_defaults')
+    use_defaults = st.checkbox('Use default skill mapping from notebook analysis', value=True, key='module23_comp_skill_defaults')
     if use_defaults:
         high_skill = default_high_skill
         low_skill = default_low_skill
     else:
-        high_skill = [s.strip() for s in st.text_area('High skill occupations (comma separated)', value=','.join(default_high_skill), key='module23_high_skill').split(',') if s.strip()]
-        low_skill = [s.strip() for s in st.text_area('Low skill occupations (comma separated)', value=','.join(default_low_skill), key='module23_low_skill').split(',') if s.strip()]
+        high_skill = [
+            s.strip()
+            for s in st.text_area(
+                'High skill occupations (comma separated)',
+                value=','.join(default_high_skill),
+                key='module23_comp_high_skill',
+            ).split(',')
+            if s.strip()
+        ]
+        low_skill = [
+            s.strip()
+            for s in st.text_area(
+                'Low skill occupations (comma separated)',
+                value=','.join(default_low_skill),
+                key='module23_comp_low_skill',
+            ).split(',')
+            if s.strip()
+        ]
 
-    skill_df = df_active.copy()
-    skill_df['skill_level'] = skill_df['occupation'].apply(
+    skill_rate_raw = tables.get('unemployment_rate_by_occupation_long') if tables else df_active
+    if skill_rate_raw is None:
+        st.info('No unemployment rate table available to compute the comparative lens.')
+        return
+
+    skill_rate_raw = skill_rate_raw.copy()
+    skill_rate_raw['skill_level'] = skill_rate_raw['occupation'].apply(
         lambda occ: 'High Skill' if occ in high_skill else ('Low Skill' if occ in low_skill else 'Other')
     )
-    skill_df = _ensure_year_int(skill_df)
-    if rate_col == 'unemployment_rate':
-        skill_df['plot_unemp_pct'] = skill_df[rate_col] * 100.0
-    else:
-        skill_df['plot_unemp_pct'] = skill_df[rate_col]
+    skill_rate_raw = _ensure_year_int(skill_rate_raw)
+    rate_column = _select_rate_column(skill_rate_raw)
+    if rate_column is None:
+        st.info('Selected unemployment table does not contain a rate column.')
+        return
 
-    fig2 = px.line(
-        skill_df,
-        x='year_yr',
-        y='plot_unemp_pct',
-        color='skill_level',
-        line_group='occupation',
-        markers=True,
-        title='Unemployment rate — High vs Low skill occupations'
+    skill_rate = (
+        skill_rate_raw[skill_rate_raw['skill_level'].isin(['High Skill', 'Low Skill'])]
+        .groupby(['year_yr', 'skill_level'])[rate_column]
+        .mean()
+        .unstack('skill_level')
+        .dropna()
+        .sort_index()
     )
-    fig2.update_yaxes(title='Unemployment rate (%)')
+
+    if rate_column == 'unemployment_rate':
+        skill_rate *= 100.0
+
+    if skill_rate.empty:
+        st.info('Unable to compute comparative lens because the rate table is empty after filtering.')
+        return
+
+    skill_rate['gap_pct_point'] = skill_rate['Low Skill'] - skill_rate['High Skill']
+    skill_rate['ratio'] = skill_rate['Low Skill'] / skill_rate['High Skill']
+    skill_rate['rolling_ratio'] = skill_rate['ratio'].rolling(window=3, min_periods=1).mean()
+
+    fig_comp = make_subplots(
+        rows=2,
+        cols=2,
+        specs=[[{'colspan': 2}, None], [{}, {}]],
+        subplot_titles=(
+            'Average unemployment rate by skill tier',
+            'Low - High unemployment rate gap',
+            'Low-to-high unemployment rate ratio',
+        ),
+        vertical_spacing=0.12,
+        horizontal_spacing=0.12,
+    )
+
+    fig_comp.add_trace(
+        go.Scatter(
+            x=skill_rate.index,
+            y=skill_rate['High Skill'],
+            mode='lines+markers',
+            name='High Skill',
+            line=dict(color='#1f77b4'),
+        ),
+        row=1,
+        col=1,
+    )
+    fig_comp.add_trace(
+        go.Scatter(
+            x=skill_rate.index,
+            y=skill_rate['Low Skill'],
+            mode='lines+markers',
+            name='Low Skill',
+            line=dict(color='#ff7f0e'),
+        ),
+        row=1,
+        col=1,
+    )
+    fig_comp.add_trace(
+        go.Bar(
+            x=skill_rate.index,
+            y=skill_rate['gap_pct_point'],
+            name='Gap (pct pts)',
+            marker_color='#ff7f0e',
+        ),
+        row=2,
+        col=1,
+    )
+    fig_comp.add_hline(y=0, line=dict(color='#444', dash='dash'), row=2, col=1)  # type: ignore[call-arg]
+    fig_comp.add_trace(
+        go.Scatter(
+            x=skill_rate.index,
+            y=skill_rate['ratio'],
+            mode='lines+markers',
+            name='Ratio',
+            line=dict(color='#2ca02c'),
+        ),
+        row=2,
+        col=2,
+    )
+    fig_comp.add_trace(
+        go.Scatter(
+            x=skill_rate.index,
+            y=skill_rate['rolling_ratio'],
+            mode='lines',
+            name='3-year rolling ratio',
+            line=dict(color='#17becf', dash='dash'),
+        ),
+        row=2,
+        col=2,
+    )
+    fig_comp.add_hline(y=1, line=dict(color='#444', dash='dash'), row=2, col=2)  # type: ignore[call-arg]
+
+    fig_comp.update_xaxes(title_text='Year', row=1, col=1)
+    fig_comp.update_xaxes(title_text='Year', row=2, col=1)
+    fig_comp.update_xaxes(title_text='Year', row=2, col=2)
+    fig_comp.update_yaxes(title_text='Unemployment rate (%)', row=1, col=1)
+    fig_comp.update_yaxes(title_text='Gap (percentage points)', row=2, col=1)
+    fig_comp.update_yaxes(title_text='Low / High ratio', row=2, col=2)
+    fig_comp.update_layout(
+        height=720,
+        legend_title_text='Series',
+        hovermode='x unified',
+        title_text='Structural resilience comparison: high vs low skill occupations',
+        title_x=0.5,
+    )
     try:
-        min_year2 = int(skill_df['year_yr'].min())
-        fig2.update_xaxes(tickmode='linear', tick0=min_year2, dtick=1)
+        fig_comp.add_vrect(
+            x0=2019.5,
+            x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.12)',
+            line_width=0,
+            row='all',
+            col='all',
+        )
     except Exception:
         pass
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig_comp, use_container_width=True, key='module3_comparative_subplots')
 
-    st.markdown('---')
-    st.subheader('Occupation small multiples')
-    default_multiples = occupations[: min(8, len(occupations))]
-    chosen_multiples = st.multiselect('Pick occupations (max 12)', options=occupations, default=default_multiples, key='module23_small_multiples')
-    if chosen_multiples:
-        occ_df = df_active[df_active['occupation'].isin(chosen_multiples)].copy()
-        occ_df = _ensure_year_int(occ_df)
-        if rate_col == 'unemployment_rate':
-            occ_df['plot_unemp_pct'] = occ_df[rate_col] * 100.0
-        else:
-            occ_df['plot_unemp_pct'] = occ_df[rate_col]
+    latest_comp_year = skill_rate.index.max()
+    latest_row = skill_rate.loc[latest_comp_year]
+    st.markdown(
+        f"*{int(latest_comp_year)} comparative snapshot:* Low-skill unemployment averaged {latest_row['Low Skill']:.1f}% versus {latest_row['High Skill']:.1f}% for high-skill roles, leaving a gap of {latest_row['gap_pct_point']:.1f} percentage points (ratio {latest_row['ratio']:.2f}x)."
+    )
 
-        fig3 = px.line(
-            occ_df,
-            x='year_yr',
-            y='plot_unemp_pct',
-            color='occupation',
-            facet_col='occupation',
-            facet_col_wrap=4,
-            markers=True,
-            title='Occupation small multiples'
+    comp_period_bins = pd.cut(
+        skill_rate.index,
+        bins=[2013, 2019, 2021, 2025],
+        labels=['Pre-pandemic (2014-2019)', 'COVID shock (2020-2021)', 'Recovery (2022-2024)'],
+        include_lowest=True,
+    )
+    comp_summary = (
+        pd.DataFrame({
+            'period': comp_period_bins,
+            'gap_pct_point': skill_rate['gap_pct_point'].values,
+            'ratio': skill_rate['ratio'].values,
+        })
+        .groupby('period', observed=False)
+        .agg(
+            avg_gap_pct_point=('gap_pct_point', 'mean'),
+            max_gap_pct_point=('gap_pct_point', 'max'),
+            avg_ratio=('ratio', 'mean'),
         )
-        fig3.update_yaxes(title='Unemployment rate (%)')
-        try:
-            min_year3 = int(occ_df['year_yr'].min())
-            fig3.update_xaxes(tickmode='linear', tick0=min_year3, dtick=1)
-        except Exception:
-            pass
-        st.plotly_chart(fig3, use_container_width=True)
-    else:
-        st.info('Select at least one occupation to show the small multiples.')
-
-    st.markdown('---')
-    st.subheader('Heatmap: unemployment rate by occupation and year')
-    heat_df = _ensure_year_int(df_active.copy())
-    if 'year_yr' in heat_df.columns:
-        if rate_col == 'unemployment_rate':
-            heat_df['plot_unemp_pct'] = heat_df[rate_col] * 100.0
-        else:
-            heat_df['plot_unemp_pct'] = heat_df[rate_col]
-
-        pivot = heat_df.pivot_table(index='occupation', columns='year_yr', values='plot_unemp_pct', aggfunc='mean')
-        if pivot.empty:
-            st.info('Heatmap has no data to display after pivoting.')
-        else:
-            fig4 = px.imshow(
-                pivot.fillna(0),
-                labels=dict(x='Year', y='Occupation', color='Unemployment rate (%)'),
-                aspect='auto',
-                color_continuous_scale='YlGnBu'
-            )
-            fig4.update_layout(title='Unemployment rate by occupation and year')
-            st.plotly_chart(fig4, use_container_width=True)
-    else:
-        st.info('Year information is missing; unable to generate heatmap.')
-
-    st.markdown('---')
-    st.subheader('Share of unemployment by occupation (stacked area)')
-    share_df = _ensure_year_int(df_active.copy())
-    if 'year_yr' in share_df.columns:
-        if rate_col == 'unemployment_rate':
-            share_df['plot_unemp_pct'] = share_df[rate_col] * 100.0
-        else:
-            share_df['plot_unemp_pct'] = share_df[rate_col]
-
-        pivot_sum = share_df.pivot_table(index='year_yr', columns='occupation', values='plot_unemp_pct', aggfunc='sum').fillna(0)
-        row_totals = pivot_sum.sum(axis=1)
-        non_zero = row_totals.replace(0, pd.NA)
-        prop = pivot_sum.divide(non_zero, axis=0).dropna(how='all')
-        if prop.empty:
-            st.info('Not enough non-zero data to compute share of unemployment.')
-        else:
-            area_df = prop.reset_index().rename(columns={'year_yr': 'year'})
-            fig5 = px.area(area_df, x='year', y=area_df.columns[1:], title='Share of unemployment by occupation')
-            try:
-                min_year5 = int(area_df['year'].min())
-                fig5.update_xaxes(tickmode='linear', tick0=min_year5, dtick=1)
-            except Exception:
-                pass
-            st.plotly_chart(fig5, use_container_width=True)
-    else:
-        st.info('Year information is missing; unable to compute share of unemployment.')
+        .reset_index()
+        .round({'avg_gap_pct_point': 2, 'max_gap_pct_point': 2, 'avg_ratio': 2})
+    )
+    st.dataframe(comp_summary)
 
 
 def page_cleaning_and_eda(engine: Optional[sqlalchemy.engine.Engine]):

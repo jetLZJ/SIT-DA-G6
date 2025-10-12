@@ -21,8 +21,6 @@ def get_db_engine() -> Optional[sqlalchemy.engine.Engine]:
 
 def page_hypothesis(engine: Optional[sqlalchemy.engine.Engine]) -> None:
     """Frame the strategic hypothesis with the organised brief and problem narrative."""
-    st.header('Hypothesis')
-    st.caption('Strategic question and analytical framing derived from the industry brief.')
     overview.page_overview()
 
 
@@ -62,7 +60,6 @@ def page_learnings(engine: Optional[sqlalchemy.engine.Engine]) -> None:
         - **Hypothesis validation:** Occupation-level vulnerability remains concentrated in service, clerical, and certain professional tracks, confirming the strategic brief while highlighting the 2020 shock as an inflection point.
         - **Data readiness:** Module 1 transformations plus Modules 2–3 quality gates establish a reproducible long-format warehouse with demographic enrichments for downstream analytics.
         - **Model efficacy:** The Module 4 pipeline delivers both point forecasts (KNN ≈ 9.8% MAPE) and risk classification (logistic regression >70% ROC-AUC), giving planners actionable forward-looking insight.
-        - **Operational enablement:** Shared data contracts, Power BI dashboards, and Streamlit diagnostics allow quarterly refreshes without rework.
 
         ### Recommended next steps
         1. Automate quarterly ingestion from the Ministry of Manpower feeds and re-run feature engineering health checks.
@@ -70,8 +67,7 @@ def page_learnings(engine: Optional[sqlalchemy.engine.Engine]) -> None:
         3. Deploy intervention playbooks for high-risk occupation clusters surfaced by the risk models.
         """
     )
-    with st.expander('Companion dashboard & deliverables (Module 4)', expanded=False):
-        dashboard.page_dashboard_and_deliverables(engine)
+
 def main():
     st.set_page_config(page_title=PAGE_TITLE, layout='wide')
     st.title(PAGE_TITLE)
@@ -82,14 +78,14 @@ def main():
     page = st.sidebar.radio(
         'Go to',
         [
-            'Hypothesis',
+            'Overview',
             'Data Processing and Analysis Methodology',
             'Modelling Methodology',
             'Learnings',
         ],
     )
 
-    if page == 'Hypothesis':
+    if page == 'Overview':
         page_hypothesis(engine)
     elif page == 'Data Processing and Analysis Methodology':
         page_data_processing_and_analysis_methodology(engine)
