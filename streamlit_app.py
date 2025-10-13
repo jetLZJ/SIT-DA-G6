@@ -5,7 +5,7 @@ import sqlalchemy
 import streamlit as st
 
 from app import data_loader
-from app_pages import overview, data_schema, cleaning_eda, dashboard, module_4_machine_learning
+from app_pages import overview, data_schema, cleaning_eda, dashboard, module_4_machine_learning, presentation_mode
 
 
 PAGE_TITLE = 'SIT-DA Capstone — Labor Force Trends'
@@ -130,32 +130,46 @@ def main():
         st.set_page_config(page_title=PAGE_TITLE, layout='wide', page_icon=str(APP_LOGO_PATH))
     else:
         st.set_page_config(page_title=PAGE_TITLE, layout='wide')
-    st.title(PAGE_TITLE)
-
-    if APP_LOGO_PATH.exists():
-        st.sidebar.image(str(APP_LOGO_PATH), caption='Data Analytics Group 6', width='stretch')
-
+    
+    # Initialize presentation mode state
+    presentation_mode.initialize_presentation_state()
+    
+    # Get database engine
     engine = get_db_engine()
+    
+    # Check if in presentation mode
+    if st.session_state.get('presentation_mode', False):
+        # Render presentation mode
+        presentation_mode.render_presentation_mode(engine)
+    else:
+        # Regular report mode
+        st.title(PAGE_TITLE)
 
-    st.sidebar.markdown('## Navigation')
-    page = st.sidebar.radio(
-        'Go to',
-        [
-            'Overview',
-            'Data Processing and Analysis Methodology',
-            'Modelling Methodology',
-            'Learnings',
-        ],
-    )
+        if APP_LOGO_PATH.exists():
+            st.sidebar.image(str(APP_LOGO_PATH), caption='Data Analytics Group 6', width='stretch')
 
-    if page == 'Overview':
-        page_hypothesis(engine)
-    elif page == 'Data Processing and Analysis Methodology':
-        page_data_processing_and_analysis_methodology(engine)
-    elif page == 'Modelling Methodology':
-        page_modelling_methodology(engine)
-    elif page == 'Learnings':
-        page_learnings(engine)
+        st.sidebar.markdown('## Navigation')
+        page = st.sidebar.radio(
+            'Go to',
+            [
+                'Overview',
+                'Data Processing and Analysis Methodology',
+                'Modelling Methodology',
+                'Learnings',
+            ],
+        )
+
+        if page == 'Overview':
+            page_hypothesis(engine)
+        elif page == 'Data Processing and Analysis Methodology':
+            page_data_processing_and_analysis_methodology(engine)
+        elif page == 'Modelling Methodology':
+            page_modelling_methodology(engine)
+        elif page == 'Learnings':
+            page_learnings(engine)
+    
+    # Render mode toggle button in sidebar
+    presentation_mode.render_mode_toggle_button()
 
 
 if __name__ == '__main__':
