@@ -496,7 +496,9 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
     st.markdown(
         """
         ### Trend lens — Unemployment trajectories across occupation groups
-        This lens follows decade-long unemployment patterns to pinpoint persistent pressure points and structural gaps. The charts below show (1) trajectories for the occupations you care most about, (2) how the average gap between high- versus low-skill roles widens during shocks, and (3) the proportion of total unemployment carried by each occupation family.
+        This lens explores decade-long unemployment patterns to identify persistent structural pressures and cyclical shocks across occupations. The visual below tracks trajectories for eight main occupation families from 2014 to 2024. 
+        The COVID-19 period (2020-2021) marked a sharp spike across all occupations, with lower-skilled groups such as Clerical Support Workers and Service & Sales Workers experiencing the most severe disruptions. Despite partial recovery post-2021, these roles maintained the highest average unemployment rates, highlighting their structural vulnerability compared to higher-skilled roles such as Professionals and Managers.
+
         """
     )
 
@@ -558,10 +560,12 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                     )
             except Exception:
                 st.caption('Latest-year summary unavailable due to inconsistent occupation data.')
+            st.caption("The trajectories reveal that lower-skilled occupations such as Clerical Support Workers and Service & Sales Workers consistently record higher unemployment rates, validating the hypothesis that lower-skilled roles face greater vulnerability.")
         else:
             st.info('No rows available for the selected occupations.')
     else:
         st.info('No occupation values available for trend analysis.')
+    
 
     st.markdown('#### Share of unemployment burden')
     share_df = _ensure_year_int(df_active.copy())
@@ -603,6 +607,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                 )
             except Exception:
                 st.caption('Share breakdown summary unavailable because the latest year record is incomplete.')
+            st.caption('This concentration of unemployment within Clerical Support and Service & Sales occupations underscores the structural persistence of job insecurity among lower-skilled roles.')
     else:
         st.info('Year information is missing; unable to compute share of unemployment.')
 
@@ -610,7 +615,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
     st.markdown(
         """
         ### Human capital lens — demographic mediators of unemployment risk
-        We break down unemployment burden by education tier, gender, and age group across high-volume occupation families. These views surface which cohorts drive vulnerability and where targeted interventions can deliver the biggest lift.
+        This lens examines how education, gender, and age interact with occupation groups to influence unemployment risk. It highlights demographic profiles driving vulnerability and identifies where targeted policy interventions could deliver the greatest impact.
         """
     )
 
@@ -670,7 +675,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
         except Exception:
             st.caption('Education-tier summary unavailable because the dataset lacks a consistent year field.')
 
-        st.caption('Snapshots the qualification pathways contributing to unemployment each year, highlighting cohorts for reskilling focus.')
+        st.caption('The rise in unemployment across higher education tiers across the years reflects structural shifts where education alone no longer insulates workers from job loss, particularly among professional and technical occupations.')
     else:
         st.info('Qualification-level unemployment table not available in the current data connection.')
 
@@ -732,7 +737,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                     )
             except Exception:
                 st.caption('Gender summary unavailable because the latest-year counts are incomplete.')
-            st.caption('Shows where female or male unemployment surges, guiding targeted support such as childcare or redeployment programmes.')
+            st.caption('While male unemployment leads in overall volume, gender exposure varies across occupations. Female workers in lower-skilled roles such as clerical and service occupations remain more exposed to cyclical job losses, reinforcing the gendered vulnerability within Singapore’s labour market.')
     except KeyError:
         st.info('Previous occupation by gender table not available in the current data connection.')
 
@@ -800,7 +805,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
                     )
             except Exception:
                 st.caption('Age profile summary unavailable because the latest-year counts are incomplete.')
-            st.caption('Highlights dominant age cohorts inside each occupation family and flags sudden shifts that may need reskilling attention.')
+            st.caption('Persistent youth unemployment reinforces the need for early career upskilling and transition initiatives that support integration into stable occupations.')
     except KeyError:
         st.info('Age-based unemployment table not available in the current data connection.')
 
@@ -808,7 +813,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
     st.markdown(
         """
         ### Comparative lens — Resilience of high- vs low-skill occupations
-        We benchmark high-skill PMET roles against lower-skill occupation groups to confirm whether structural resilience persists even after the pandemic shock. Persistent gaps highlight where policy buffers remain critical.
+        This section benchmarks high-skill (PMET) occupations against low-skill groups to assess long-term resilience. This persistent gap confirms the hypothesis that lower-skilled occupations are more vulnerable to technological and industry transformations. 
         """
     )
 
@@ -984,6 +989,7 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
     st.markdown(
         f"*{int(latest_comp_year)} comparative snapshot:* Low-skill unemployment averaged {latest_row['Low Skill']:.1f}% versus {latest_row['High Skill']:.1f}% for high-skill roles, leaving a gap of {latest_row['gap_pct_point']:.1f} percentage points (ratio {latest_row['ratio']:.2f}x)."
     )
+    st.caption('Although recovery reduced the disparity post-COVID, the resilience of high-skill occupations continues to outperform, illustrating the ongoing need for reskilling in lower-skilled job segments.')
 
     comp_period_bins = pd.cut(
         skill_rate.index,

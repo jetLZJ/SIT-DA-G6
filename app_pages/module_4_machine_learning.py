@@ -212,7 +212,7 @@ def _render_data_preparation_section(
     master_frames: MasterFrameDiagnostics,
 ) -> None:
     st.subheader('Data preparation & feature engineering')
-    with st.expander('How raw tables become modelling datasets', expanded=True):
+    with st.expander('How raw tables become modelling datasets', expanded=False):
         st.markdown(
             """
             **Data sourcing, coverage & quality**
