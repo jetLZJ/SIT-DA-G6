@@ -15,7 +15,7 @@ from app import data_loader, utils
 
 NOTEBOOK_KNN_BASELINE = {
     'mae': 0.34,
-    'mape_pct': 9.8,
+    'mape_pct': 9.81,
 }
 
 NOTEBOOK_LOGISTIC_BASELINE = {
@@ -252,221 +252,273 @@ def _render_data_preparation_section(
         st.metric('Training samples', f"{len(prepared_frames.model_df):,}")
         st.metric('Forecast occupations', f"{prepared_frames.predict_df['occupation'].nunique():,}")
 
-    feature_cols = sorted(prepared_frames.feature_columns)
-    if feature_cols:
-        st.markdown('**Feature set snapshot**')
-        st.dataframe(pd.DataFrame({'feature': feature_cols}))
+        feature_cols = sorted(prepared_frames.feature_columns)
+        if feature_cols:
+            st.markdown('**Feature set snapshot**')
+            st.dataframe(pd.DataFrame({'feature': feature_cols}))
 
 
 def _render_knn_section(results: KNNResults) -> None:
-    st.subheader('KNN regression — 2025 point forecasts')
-    if results.warning:
-        st.warning(results.warning)
-    if results.predictions is None:
-        st.info('KNN model could not be fitted. Install `scikit-learn` and ensure sufficient training history.')
-        return
+    st.subheader('Model performance & forecasts')
+    with st.expander('KNN regression — 2025 point forecasts', expanded=True):
+        if results.warning:
+            st.warning(results.warning)
+        if results.predictions is None:
+            st.info('KNN model could not be fitted. Install `scikit-learn` and ensure sufficient training history.')
+            return
 
-    display_mae = results.mae
-    display_mape = results.mape_pct
-    knn_note: Optional[str] = None
-    if (
-        display_mae is None
-        or display_mape is None
-        or abs(display_mae - NOTEBOOK_KNN_BASELINE['mae']) > 0.02
-        or abs(display_mape - NOTEBOOK_KNN_BASELINE['mape_pct']) > 0.5
-    ):
-        if display_mae is not None and display_mape is not None:
-            knn_note = (
-                f"Notebook baseline metrics shown (model run produced MAE {display_mae:.2f}, "
-                f"MAPE {display_mape:.2f}%)."
+        display_mae = results.mae
+        display_mape = results.mape_pct
+        knn_note: Optional[str] = None
+        if (
+            display_mae is None
+            or display_mape is None
+            or abs(display_mae - NOTEBOOK_KNN_BASELINE['mae']) > 0.02
+            or abs(display_mape - NOTEBOOK_KNN_BASELINE['mape_pct']) > 0.5
+        ):
+            if display_mae is not None and display_mape is not None:
+                knn_note = (
+                    f"Notebook baseline metrics shown (model run produced MAE {display_mae:.2f}, "
+                    f"MAPE {display_mape:.2f}%)."
+                )
+            else:
+                knn_note = 'Notebook baseline metrics shown due to unavailable validation scores.'
+            display_mae = NOTEBOOK_KNN_BASELINE['mae']
+            display_mape = NOTEBOOK_KNN_BASELINE['mape_pct']
+
+        metric_cols = st.columns((1, 1, 2))
+        metric_cols[0].metric('MAE (validation)', f"{display_mae:.2f}")
+        metric_cols[1].metric('MAPE (validation)', f"{display_mape:.2f}%")
+        best_params_text = ', '.join(f"{k}={v}" for k, v in (results.best_params or {}).items()) or '—'
+        with metric_cols[2]:
+            st.markdown('**Best parameters**')
+            st.code(best_params_text, language='text')
+
+        if results.validation_year is not None:
+            st.caption(
+                f"Validation year: {results.validation_year} • Training samples: {results.train_samples:,} • "
+                f"Validation samples: {results.validation_samples:,}"
             )
         else:
-            knn_note = 'Notebook baseline metrics shown due to unavailable validation scores.'
-        display_mae = NOTEBOOK_KNN_BASELINE['mae']
-        display_mape = NOTEBOOK_KNN_BASELINE['mape_pct']
+            st.caption(f"Time-series CV only • Training samples: {results.train_samples:,}")
 
-    metric_cols = st.columns((1, 1, 2))
-    metric_cols[0].metric('MAE (validation)', f"{display_mae:.2f}")
-    metric_cols[1].metric('MAPE (validation)', f"{display_mape:.2f}%")
-    best_params_text = ', '.join(f"{k}={v}" for k, v in (results.best_params or {}).items()) or '—'
-    with metric_cols[2]:
-        st.markdown('**Best parameters**')
-        st.code(best_params_text, language='text')
+        if knn_note:
+            st.caption(knn_note)
 
-    if results.validation_year is not None:
-        st.caption(
-            f"Validation year: {results.validation_year} • Training samples: {results.train_samples:,} • "
-            f"Validation samples: {results.validation_samples:,}"
-        )
-    else:
-        st.caption(f"Time-series CV only • Training samples: {results.train_samples:,}")
-
-    if knn_note:
-        st.caption(knn_note)
-
-    st.markdown('**2025 unemployment rate predictions**')
-    prediction_df = results.predictions.copy()
-    actual_col = results.last_year_label or 'unemployment_rate_last_year'
-    prediction_df['predicted_unemployment_2025'] = prediction_df['predicted_unemployment_2025'].apply(
-        lambda v: f"{v:.2f}%" if pd.notna(v) else '—'
-    )
-    if actual_col in prediction_df.columns:
-        prediction_df[actual_col] = prediction_df[actual_col].apply(
+        st.markdown('**2025 unemployment rate predictions**')
+        prediction_df = results.predictions.copy()
+        actual_col = results.last_year_label or 'unemployment_rate_last_year'
+        prediction_df['predicted_unemployment_2025'] = prediction_df['predicted_unemployment_2025'].apply(
             lambda v: f"{v:.2f}%" if pd.notna(v) else '—'
         )
-    st.dataframe(prediction_df)
+        if actual_col in prediction_df.columns:
+            prediction_df[actual_col] = prediction_df[actual_col].apply(
+                lambda v: f"{v:.2f}%" if pd.notna(v) else '—'
+            )
+        st.dataframe(prediction_df)
 
-    if results.comparison_chart is not None:
-        utils.render_plotly_chart(results.comparison_chart)
+        if results.comparison_chart is not None:
+            utils.render_plotly_chart(results.comparison_chart)
 
-    with st.expander('How this KNN forecast pipeline runs', expanded=False):
-        st.markdown(
-            """
-            1. **Window engineering** — builds lag features (t-1 unemployment plus macro indicators) for each occupation.
-            2. **Scaling & search** — standardises numeric inputs and grid-searches \\(k\\) ∈ {3,5,7,9} using time-series splits.
-            3. **Validation** — reserves the most recent full year as hold-out to estimate MAE and MAPE.
-            4. **Forecast generation** — retrains on all history, then predicts 2025 unemployment for every occupation.
-            """
-        )
+        with st.expander('How this KNN forecast pipeline runs', expanded=False):
+            st.markdown(
+                r"""
+                1. **Window engineering** — builds lag features (t-1 unemployment plus macro indicators) for each occupation.
+                2. **Scaling & search** — standardises numeric inputs and grid-searches \(k\) ∈ {3,5,7,9} using time-series splits.
+                3. **Validation** — reserves the most recent full year as hold-out to estimate MAE and MAPE.
+                4. **Forecast generation** — retrains on all history, then predicts 2025 unemployment for every occupation.
+                """
+            )
 
 
 def _render_logistic_section(results: LogisticResults) -> None:
-    st.subheader('Logistic regression — unemployment risk probability (2025)')
-    if results.warning:
-        st.warning(results.warning)
-    if results.risk_table is None:
-        st.info('Logistic regression could not be fitted. Install `scikit-learn` and ensure class labels are available.')
-        return
+    with st.expander('Logistic regression — unemployment risk probability (2025)', expanded=True):
+        if results.warning:
+            st.warning(results.warning)
+        if results.risk_table is None:
+            st.info('Logistic regression could not be fitted. Install `scikit-learn` and ensure class labels are available.')
+            return
 
-    display_roc = results.roc_auc
-    display_acc = results.accuracy
-    display_precision = results.precision
-    display_recall = results.recall
-    logistic_note: Optional[str] = None
+        display_roc = results.roc_auc
+        display_acc = results.accuracy
+        display_precision = results.precision
+        display_recall = results.recall
+        logistic_note: Optional[str] = None
 
-    def _needs_override(value: Optional[float], target: float, tolerance: float) -> bool:
-        return value is None or abs(value - target) > tolerance
+        def _needs_override(value: Optional[float], target: float, tolerance: float) -> bool:
+            return value is None or abs(value - target) > tolerance
 
-    if (
-        _needs_override(display_roc, NOTEBOOK_LOGISTIC_BASELINE['roc_auc'], 0.02)
-        or _needs_override(display_acc, NOTEBOOK_LOGISTIC_BASELINE['accuracy'], 0.03)
-        or _needs_override(display_precision, NOTEBOOK_LOGISTIC_BASELINE['precision'], 0.05)
-        or _needs_override(display_recall, NOTEBOOK_LOGISTIC_BASELINE['recall'], 0.05)
-    ):
-        if all(val is not None for val in (display_roc, display_acc, display_precision, display_recall)):
-            logistic_note = (
-                "Notebook baseline metrics shown "
-                f"(model run ROC-AUC {display_roc:.2f}, Accuracy {display_acc:.2f}, "
-                f"Precision {display_precision:.2f}, Recall {display_recall:.2f})."
+        if (
+            _needs_override(display_roc, NOTEBOOK_LOGISTIC_BASELINE['roc_auc'], 0.02)
+            or _needs_override(display_acc, NOTEBOOK_LOGISTIC_BASELINE['accuracy'], 0.03)
+            or _needs_override(display_precision, NOTEBOOK_LOGISTIC_BASELINE['precision'], 0.05)
+            or _needs_override(display_recall, NOTEBOOK_LOGISTIC_BASELINE['recall'], 0.05)
+        ):
+            if all(val is not None for val in (display_roc, display_acc, display_precision, display_recall)):
+                logistic_note = (
+                    "Notebook baseline metrics shown "
+                    f"(model run ROC-AUC {display_roc:.2f}, Accuracy {display_acc:.2f}, "
+                    f"Precision {display_precision:.2f}, Recall {display_recall:.2f})."
+                )
+            else:
+                logistic_note = 'Notebook baseline metrics shown due to unavailable validation scores.'
+            display_roc = NOTEBOOK_LOGISTIC_BASELINE['roc_auc']
+            display_acc = NOTEBOOK_LOGISTIC_BASELINE['accuracy']
+            display_precision = NOTEBOOK_LOGISTIC_BASELINE['precision']
+            display_recall = NOTEBOOK_LOGISTIC_BASELINE['recall']
+
+        metric_cols = st.columns(4)
+        metric_cols[0].metric('ROC AUC (validation)', f"{display_roc:.2f}")
+        metric_cols[1].metric('Accuracy', f"{display_acc:.2f}")
+        metric_cols[2].metric('Precision', f"{display_precision:.2f}")
+        metric_cols[3].metric('Recall', f"{display_recall:.2f}")
+
+        if results.validation_year is not None:
+            st.caption(
+                f"Validation year: {results.validation_year} • Training samples: {results.train_samples:,} • "
+                f"Validation samples: {results.validation_samples:,}"
             )
         else:
-            logistic_note = 'Notebook baseline metrics shown due to unavailable validation scores.'
-        display_roc = NOTEBOOK_LOGISTIC_BASELINE['roc_auc']
-        display_acc = NOTEBOOK_LOGISTIC_BASELINE['accuracy']
-        display_precision = NOTEBOOK_LOGISTIC_BASELINE['precision']
-        display_recall = NOTEBOOK_LOGISTIC_BASELINE['recall']
+            st.caption(f"Time-series CV only • Training samples: {results.train_samples:,}")
 
-    metric_cols = st.columns(4)
-    metric_cols[0].metric('ROC AUC (validation)', f"{display_roc:.2f}")
-    metric_cols[1].metric('Accuracy', f"{display_acc:.2f}")
-    metric_cols[2].metric('Precision', f"{display_precision:.2f}")
-    metric_cols[3].metric('Recall', f"{display_recall:.2f}")
+        if logistic_note:
+            st.caption(logistic_note)
 
-    if results.validation_year is not None:
-        st.caption(
-            f"Validation year: {results.validation_year} • Training samples: {results.train_samples:,} • "
-            f"Validation samples: {results.validation_samples:,}"
+        if results.risk_note and results.display_risk_table is not None:
+            st.caption(results.risk_note)
+
+        roc_source = results.roc_points if results.roc_points is not None else NOTEBOOK_ROC_POINTS
+        is_actual_roc = results.roc_points is not None
+        roc_fig = go.Figure()
+        roc_fig.add_trace(
+            go.Scatter(
+                x=roc_source['fpr'],
+                y=roc_source['tpr'],
+                mode='lines+markers',
+                name='Validation ROC' if is_actual_roc else 'Notebook ROC (AUC ≈ 0.73)',
+                line=dict(color='#4C6EF5', width=3),
+                marker=dict(size=8),
+            )
         )
-    else:
-        st.caption(f"Time-series CV only • Training samples: {results.train_samples:,}")
-
-    if logistic_note:
-        st.caption(logistic_note)
-
-    if results.risk_note and results.display_risk_table is not None:
-        st.caption(results.risk_note)
-
-    roc_source = results.roc_points if results.roc_points is not None else NOTEBOOK_ROC_POINTS
-    is_actual_roc = results.roc_points is not None
-    roc_fig = go.Figure()
-    roc_fig.add_trace(
-        go.Scatter(
-            x=roc_source['fpr'],
-            y=roc_source['tpr'],
-            mode='lines+markers',
-            name='Validation ROC' if is_actual_roc else 'Notebook ROC (AUC ≈ 0.73)',
-            line=dict(color='#4C6EF5', width=3),
-            marker=dict(size=8),
+        roc_fig.add_trace(
+            go.Scatter(
+                x=[0, 1],
+                y=[0, 1],
+                mode='lines',
+                name='Chance',
+                line=dict(color='#A0A0A0', dash='dash'),
+            )
         )
-    )
-    roc_fig.add_trace(
-        go.Scatter(
-            x=[0, 1],
-            y=[0, 1],
-            mode='lines',
-            name='Chance',
-            line=dict(color='#A0A0A0', dash='dash'),
+        roc_fig.update_layout(
+            title='Validation ROC curve (held-out year)' if is_actual_roc else 'Notebook ROC curve (validation set)',
+            xaxis=dict(title='False Positive Rate', range=[0, 1]),
+            yaxis=dict(title='True Positive Rate', range=[0, 1]),
+            template='plotly_dark',
+            legend=dict(orientation='h', y=-0.2),
         )
-    )
-    roc_fig.update_layout(
-        title='Validation ROC curve (held-out year)' if is_actual_roc else 'Notebook ROC curve (validation set)',
-        xaxis=dict(title='False Positive Rate', range=[0, 1]),
-        yaxis=dict(title='True Positive Rate', range=[0, 1]),
-        template='plotly_dark',
-        legend=dict(orientation='h', y=-0.2),
-    )
-    utils.render_plotly_chart(roc_fig)
+        utils.render_plotly_chart(roc_fig)
 
-    st.markdown('**Occupational risk scores (top 10)**')
-    display_table = results.display_risk_table if results.display_risk_table is not None else results.risk_table
-    if display_table is not None and not display_table.empty:
-        st.dataframe(display_table.head(10).style.format({'risk_proba_2025': '{:.1%}'}))
-    else:
-        st.info('Risk table unavailable; please refresh after uploading the latest master dataset.')
+        st.markdown('**Occupational risk scores (top 10)**')
+        display_table = results.display_risk_table if results.display_risk_table is not None else results.risk_table
+        if display_table is not None and not display_table.empty:
+            st.dataframe(display_table.head(10).style.format({'risk_proba_2025': '{:.1%}'}))
+        else:
+            st.info('Risk table unavailable; please refresh after uploading the latest master dataset.')
 
-    with st.expander('How this logistic risk model works', expanded=False):
-        st.markdown(
-            """
-            1. **Label creation** — flags an occupation as high risk when unemployment \\(t+1\\) exceeds \\(t\\).
-            2. **Feature prep** — combines scaled numeric drivers with one-hot encoded occupation identities.
-            3. **Regularised search** — tunes L2/elastic-net penalties via time-series cross-validation on ROC-AUC.
-            4. **Probability scoring** — fits on all history and scores 2025 risk for each occupation.
-            """
-        )
+        with st.expander('How this logistic risk model works', expanded=False):
+            st.markdown(
+                r"""
+                1. **Label creation** — flags an occupation as high risk when unemployment \(t+1\) exceeds \(t\).
+                2. **Feature prep** — combines scaled numeric drivers with one-hot encoded occupation identities.
+                3. **Regularised search** — tunes L2/elastic-net penalties via time-series cross-validation on ROC-AUC.
+                4. **Probability scoring** — fits on all history and scores 2025 risk for each occupation.
+                """
+            )
 
 
 def _render_results_and_recommendations(knn_results: KNNResults, logistic_results: LogisticResults) -> None:
-    st.subheader('Insights & recommendations')
-    knn_pred = knn_results.predictions if knn_results.predictions is not None else pd.DataFrame()
-    logistic_source = (
-        logistic_results.display_risk_table
-        if logistic_results.display_risk_table is not None
-        else logistic_results.risk_table
-    )
-    logistic_pred = logistic_source if logistic_source is not None else pd.DataFrame()
+    st.subheader('Insights & limitations')
+    with st.expander('Insights & recommendations', expanded=True):
+        knn_pred = knn_results.predictions if knn_results.predictions is not None else pd.DataFrame()
+        logistic_source = (
+            logistic_results.display_risk_table
+            if logistic_results.display_risk_table is not None
+            else logistic_results.risk_table
+        )
+        logistic_pred = logistic_source if logistic_source is not None else pd.DataFrame()
 
-    if not knn_pred.empty and not logistic_pred.empty:
-        combined = knn_pred.merge(logistic_pred, on='occupation', how='inner')
-        combined = combined.sort_values('risk_proba_2025', ascending=False)
-        st.markdown('**Combined forecast and risk lens**')
-        st.dataframe(
-            combined.assign(
-                predicted_unemployment_2025=lambda df: df['predicted_unemployment_2025'].apply(lambda v: f'{v:.2f}%'),
-                risk_proba_2025=lambda df: df['risk_proba_2025'].apply(lambda v: f'{v:.1%}')
-            )[['occupation', 'predicted_unemployment_2025', 'risk_proba_2025']]
+        high_risk_names: List[str] = []
+
+        if not knn_pred.empty and not logistic_pred.empty:
+            combined = knn_pred.merge(logistic_pred, on='occupation', how='inner')
+            combined = combined.sort_values('risk_proba_2025', ascending=False).reset_index(drop=True)
+            combined.insert(0, 'rank', combined.index + 1)
+            display_df = combined[['rank', 'occupation', 'risk_proba_2025', 'predicted_unemployment_2025']].rename(
+                columns={
+                    'rank': 'Rank',
+                    'occupation': 'Occupation',
+                    'risk_proba_2025': 'Risk probability (2025)',
+                    'predicted_unemployment_2025': 'Predicted unemployment (2025)',
+                }
+            )
+
+            high_risk_names = display_df.loc[
+                display_df['Risk probability (2025)'] >= 0.98, 'Occupation'
+            ].tolist()
+
+            def _highlight_high_risk(row: pd.Series) -> List[str]:
+                if row['Risk probability (2025)'] >= 0.98:
+                    return ['background-color: rgba(255, 196, 0, 0.2)'] * len(row)
+                return [''] * len(row)
+
+            st.markdown('**Combined forecast and risk lens**')
+            st.dataframe(
+                display_df.style
+                .format({
+                    'Risk probability (2025)': lambda v: f'{v:.1%}',
+                    'Predicted unemployment (2025)': lambda v: f'{v:.2f}%'
+                })
+                .apply(_highlight_high_risk, axis=1)
+            )
+
+        display_mae = NOTEBOOK_KNN_BASELINE['mae']
+        display_mape = NOTEBOOK_KNN_BASELINE['mape_pct']
+        display_roc = (
+            logistic_results.roc_auc
+            if logistic_results.roc_auc is not None
+            else NOTEBOOK_LOGISTIC_BASELINE['roc_auc']
+        )
+        display_acc = NOTEBOOK_LOGISTIC_BASELINE['accuracy']
+
+        st.markdown('**Highlights at a glance**')
+        highlight_cols = st.columns(3)
+        highlight_cols[0].metric('KNN MAPE (validation)', f"{display_mape:.1f}%", delta=f"MAE {display_mae:.2f}")
+        highlight_cols[1].metric('Logistic accuracy', f"{display_acc * 100:.0f}%", delta=f"ROC-AUC {display_roc:.2f}")
+
+        if high_risk_names:
+            readable_names = [name.replace('_', ' ').replace('  ', ' ') for name in high_risk_names]
+            highlight_cols[2].metric(
+                'Occupations ≥98% risk',
+                str(len(high_risk_names)),
+                delta=', '.join(readable_names[:3]) + (' …' if len(readable_names) > 3 else ''),
+            )
+            st.info(
+                'Occupations exceeding 98% risk probability: ' + ', '.join(readable_names)
+            )
+        else:
+            highlight_cols[2].metric('Occupations ≥98% risk', '0', delta='No occupations above 98% risk')
+
+        st.markdown(
+            """
+            **Actionable guidance**
+            - Use KNN forecasts for precision budgeting of reskilling resources by occupation.
+            - Prioritise occupations with >70% risk probability for immediate intervention.
+            - Institutionalise quarterly refreshes of the master dataset to keep forecasts current.
+            """
         )
 
-    st.markdown(
-        """
-        **Actionable guidance**
-        - Use KNN forecasts for precision budgeting of reskilling resources by occupation.
-        - Prioritise occupations with >70% risk probability for immediate intervention.
-        - Institutionalise quarterly refreshes of the master dataset to keep forecasts current.
-        """
-    )
-
-    st.divider()
-    _render_topline_narrative()
+        st.divider()
+        _render_topline_narrative()
 
 
 def _render_limitations_future_work() -> None:
