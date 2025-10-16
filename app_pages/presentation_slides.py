@@ -1082,6 +1082,15 @@ def show_comparative_plot():
             ),
             row=2, col=1
         )
+        
+        # Add COVID highlight to gap panel
+        fig.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+            row=2, col=1
+        )
+        
         fig.add_hline(y=0, line=dict(color='#444', dash='dash'), row=2, col=1)
         
         # Bottom right: Ratio
@@ -1095,6 +1104,15 @@ def show_comparative_plot():
             ),
             row=2, col=2
         )
+        
+        # Add COVID highlight to ratio panel  
+        fig.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+            row=2, col=2
+        )
+        
         fig.add_hline(y=1.0, line=dict(color='#444', dash='dash'), row=2, col=2)
         
         fig.update_xaxes(title_text='Year', row=1, col=1, tickmode='linear', dtick=1)
