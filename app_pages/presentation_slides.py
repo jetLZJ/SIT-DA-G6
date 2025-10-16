@@ -103,55 +103,50 @@ def slide_1_3_research_framework():
 
 
 def slide_1_4_analytic_strategy():
-    """Slide 1.4: Analytic Strategy"""
-    st.markdown("# Analytic Strategy")
-    st.markdown("### Three Lenses + Six-Step Playbook")
+    """Slide 1.4: Journey Ahead - Acts II, III, and IV Preview"""
+    st.markdown("# Journey Ahead")
+    st.markdown("### What You'll See in Acts II, III, and IV")
     
     st.markdown("---")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("### 🔍 Trend Lens")
+        st.markdown("### �️ **ACT II: PREPARATION**")
         st.markdown("""
-        - Which occupations show persistent unemployment pressure?
-        - How did COVID-19 reshape trajectories?
+        **The Foundation**
+        - Data sourcing & SQL transformation
+        - Quality validation & cleaning
+        - Exploratory pattern discovery
+        
+        *"Getting the data right before we analyze"*
         """)
     
     with col2:
-        st.markdown("### 👥 Human Capital Lens")
+        st.markdown("### � **ACT III: ANALYSIS**")
         st.markdown("""
-        - How do education tiers, gender, age groups mediate unemployment risk?
-        - Within-occupation variation by demographics
+        **Three-Lens Investigation**
+        - **Trend Lens:** Time patterns & COVID impact
+        - **Human Capital Lens:** Demographics matter
+        - **Comparative Lens:** PMET vs Non-PMET gaps
+        
+        *"Where unemployment concentrates and why"*
         """)
     
     with col3:
-        st.markdown("### 📊 Comparative Lens")
+        st.markdown("### 🎯 **ACT IV: PREDICTION & ACTION**")
         st.markdown("""
-        - Are high-skill/PMET roles structurally more resilient?
-        - Cross-occupation benchmarking
+        **Forward-Looking Solutions**
+        - KNN forecasting for 2025
+        - Risk intervention windows
+        - Strategic recommendations
+        
+        *"What to do about it—with data to back it up"*
         """)
     
     st.markdown("---")
-    st.markdown("## **Planned Analytics Playbook:**")
     
-    steps = [
-        "1️⃣ Data hygiene & quality checks",
-        "2️⃣ Exploratory visuals (trend, share-of-burden, comparative)",
-        "3️⃣ Stratified diagnostics (demographic exposure)",
-        "4️⃣ Risk scoring (volatility + logistic regression)",
-        "5️⃣ Predictive forecasting (KNN with time-aware validation)",
-        "6️⃣ Prescriptive recommendations (intervention priorities)"
-    ]
-    
-    for i, step in enumerate(steps):
-        if i % 2 == 0:
-            col1, col2 = st.columns(2)
-            col1.markdown(f"### {step}")
-            if i + 1 < len(steps):
-                col2.markdown(f"### {steps[i+1]}")
-        
-    st.info("💡 **Narrative:** We approach this challenge from three angles—temporal trends, human capital factors, and cross-occupation comparisons. Our playbook moves systematically from data quality through exploration to prediction. Each step builds toward one goal: actionable recommendations you can implement tomorrow.")
+    st.info("💡 **Narrative:** Our journey moves systematically from data preparation through analytical discovery to actionable forecasts. Each act builds toward one goal: evidence-backed recommendations for Singapore's workforce planning. By Act IV, you'll know exactly which occupations need support and when to intervene.")
 
 
 # ============================================================================
@@ -159,74 +154,17 @@ def slide_1_4_analytic_strategy():
 # ============================================================================
 
 def slide_2_1_data_sourcing(engine: Optional[sqlalchemy.engine.Engine]):
-    """Slide 2.1: Why SQL Transformation - Wide to Long"""
-    st.markdown("# Why Transform Wide → Long?")
-    st.markdown("### SQL Foundation for Time-Series Analysis")
+    """Slide 2.1: Data Transformation Wide → Long"""
+    st.markdown("# Data Transformation Wide → Long")
+    st.markdown("### Foundation for Time-Series Analysis")
     
     st.markdown("---")
     
+    # Top section - Before and After tables side by side
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### ❌ **Wide Format Problem**")
-        st.code("""CREATE TABLE unemployed_wide (
-    gender VARCHAR(20),
-    age_group VARCHAR(20),
-    year_2014 DECIMAL(5,1),
-    year_2015 DECIMAL(5,1),
-    ...
-    year_2024 DECIMAL(5,1)
-);""", language='sql')
-        st.markdown("""
-        **Limitations:**
-        - Years encoded as columns
-        - Cumbersome joins & aggregations
-        - Window functions impractical
-        - Schema changes every year
-        """)
-    
-    with col2:
-        st.markdown("### ✅ **Long Format Solution**")
-        st.code("""CREATE TABLE unemployed_long AS
-SELECT 2014 AS year, gender, 
-       age_group, year_2014 AS count
-FROM unemployed_wide
-UNION ALL
-SELECT 2015, gender, 
-       age_group, year_2015
-FROM unemployed_wide
--- ... repeat for all years""", language='sql')
-        st.markdown("""
-        **Advantages:**
-        - One observation per row
-        - Easy time-series queries
-        - Natural joins & GROUP BY
-        - Scalable analytics
-        """)
-    
-    st.markdown("---")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Source Tables", "7", help="MOM wide tables")
-    with col2:
-        st.metric("Transformation", "UNION ALL", help="SQL-based unpivot")
-    with col3:
-        st.metric("Output", "7 long tables", help="Analytics-ready")
-    
-    st.info("💡 **Narrative:** Ministry of Manpower publishes data in wide format (years as columns). We transform all 7 source tables to long format via UNION ALL stacks, creating a consistent SQL foundation for downstream analysis. This mirrors the documented workflow in Module 1 materials.")
-
-
-def slide_2_2_preliminary_analysis():
-    """Slide 2.2: Before and After Transformation"""
-    st.markdown("# Before & After Transformation")
-    st.markdown("### Wide Tables → Long Tables (SQL UNION ALL)")
-    
-    st.markdown("---")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### 📊 **Wide Table (Before)**")
+        st.markdown("### 📋 **Wide Table (Before)**")
         st.caption("unemployed_by_age_sex_wide")
         import pandas as pd
         wide_example = pd.DataFrame({
@@ -238,68 +176,82 @@ def slide_2_2_preliminary_analysis():
             '2024': [6.1, 6.8, 3.2]
         })
         st.dataframe(wide_example, use_container_width=True, hide_index=True)
+    
+    with col2:
+        st.markdown("### ✅ **Long Table (After)**")
+        st.caption("unemployed_by_age_sex_long")
+        long_example = pd.DataFrame({
+            'year': [2014, 2015, 2024, 2014, 2015, 2024],
+            'gender': ['Male', 'Male', 'Male', 'Female', 'Female', 'Female'],
+            'age_group': ['15-24', '15-24', '15-24', '15-24', '15-24', '15-24'],
+            'unemployed_count': [8.2, 8.5, 6.1, 9.1, 9.3, 6.8]
+        })
+        st.dataframe(long_example, use_container_width=True, hide_index=True)
+    
+    # Middle section - Limitations vs Advantages
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Limitations:**")
         st.markdown("""
-        **Structure:**
-        - Years as columns
-        - Each row = dimension combo
-        - 3 rows × 11 columns = 33 cells
+        • Years encoded as columns
+        • Cumbersome joins & aggregations  
+        • Window functions impractical
+        • Schema changes every year
+        """)
+        
+        st.markdown("**Structure:**")
+        st.markdown("""
+        • Years as columns
+        • Each row = dimension combo
+        • 3 rows × 11 columns = 33 cells
         """)
     
     with col2:
-        st.markdown("### 📈 **Long Table (After)**")
-        st.caption("unemployed_by_age_sex_long")
-        import pandas as pd
-        long_example = pd.DataFrame({
-            'year': [2014, 2015, 2024, 2014, 2015, 2024, 2014],
-            'gender': ['Male', 'Male', 'Male', 'Female', 'Female', 'Female', 'Male'],
-            'age_group': ['15-24', '15-24', '15-24', '15-24', '15-24', '15-24', '25-29'],
-            'unemployed_count': [8.2, 8.5, 6.1, 9.1, 9.3, 6.8, 4.5]
-        })
-        st.dataframe(long_example.head(7), use_container_width=True, hide_index=True)
+        st.markdown("**Advantages:**")
         st.markdown("""
-        **Structure:**
-        - One observation per row
-        - 3 dimensions × 11 years = 33 rows
-        - Ready for SQL analytics
+        • One observation per row
+        • Easy time-series queries
+        • Natural joins & GROUP BY
+        • Scalable analytics
+        """)
+        
+        st.markdown("**Structure:**")
+        st.markdown("""
+        • One observation per row
+        • 3 dimensions × 11 years = 33 rows
+        • Ready for SQL analytics
         """)
     
     st.markdown("---")
-    st.markdown("### 📚 **Resulting Long Tables**")
-    import pandas as pd
-    long_tables = pd.DataFrame({
-        'Long Table': [
-            'unemployment_rate_by_occupation_long',
-            'unemployed_by_age_sex_long',
-            'unemployed_by_qualification_sex_long',
-            'unemployed_by_previous_occupation_sex_long',
-            'unemployed_pmets_by_age_long',
-            'long_term_unemployed_pmets_by_age_long',
-            'unemployed_by_marital_status_sex_long'
-        ],
-        'Rows': ['88', '440', '220', '264', '110', '110', '132']
-    })
-    st.dataframe(long_tables, use_container_width=True, hide_index=True)
     
-    st.info("💡 **Narrative:** All 7 Ministry of Manpower wide tables transformed to long format. This consistent structure enables time-series queries, demographic aggregations, and seamless joins across dimensions—the foundation for our multi-lens analysis.")
+    # Bottom section - Transformation metrics
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 0.5])
+    with col1:
+        st.metric("Source Tables", "7", help="MOM wide format tables")
+    with col2:
+        st.metric("Transformation", "UNION ALL", help="SQL-based unpivot operation")
+    with col3:
+        st.metric("Output", "7 long tables", help="Analytics-ready format")
+    with col4:
+        if st.button("📋 Details", help="View detailed information about all 7 long tables", use_container_width=True):
+            show_long_tables_detail()
+    
+    st.info("💡 **Narrative:** Ministry of Manpower publishes data in wide format (years as columns). We transform all 7 source tables to long format via UNION ALL stacks, creating a consistent SQL foundation for downstream analysis. This mirrors the documented workflow in Module 1 materials.")
 
 
-def slide_2_3_pipeline_architecture():
-    """Slide 2.3: Data Cleaning Process (Module 2)"""
+def slide_2_2_pipeline_architecture():
+    """Slide 2.2: Data Cleaning Process (Module 2)"""
     st.markdown("# Data Cleaning & Quality Checks")
     st.markdown("### Module 2 — Robust ETL Pipeline")
     
     st.markdown("---")
     
-    st.markdown("### **Step 1: Data Health Checks**")
-    col1, col2 = st.columns(2)
+    # Top row - three main steps in individual containers
+    col1, col2, col3 = st.columns(3, gap="medium")
+    
     with col1:
-        st.markdown("**Dataset Info**")
-        st.code("""<class 'pandas.core.frame.DataFrame'>
-Columns: year, occupation, unemployed_rate
-Non-Null Count: 88 entries (100%)
-Dtypes: int64(1), object(1), float64(1)
-Memory: 2.1+ KB""")
-    with col2:
+        st.markdown("#### **Step 1: Data Health Checks** 🔍")
         st.markdown("**Missing Values**")
         import pandas as pd
         missing_example = pd.DataFrame({
@@ -308,43 +260,71 @@ Memory: 2.1+ KB""")
             'Missing %': ['0.0%', '0.0%', '0.0%']
         })
         st.dataframe(missing_example, use_container_width=True, hide_index=True)
+        
+        st.markdown("**Null Values**")
+        null_example = pd.DataFrame({
+            'Column': ['total_labour_force', 'employed', 'resident_unemployed'],
+            'Null': [0, 0, 0],
+            'Null %': ['0.0%', '0.0%', '0.0%']
+        })
+        st.dataframe(null_example, use_container_width=True, hide_index=True)
     
-    st.markdown("---")
-    st.markdown("### **Step 2: Convert Year from Float to Datetime**")
-    import pandas as pd
-    conversion_info = pd.DataFrame({
-        'Attribute': ['Source Column', 'Source Dtype', 'Conversion Status', 'Rows Converted'],
-        'Value': ['year', 'int64', '✅ Success', '88 non-null entries']
-    })
-    st.dataframe(conversion_info, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    st.markdown("### **Step 3: Outlier Discovery Across Long Tables**")
-    st.markdown("**Statistical summaries for unemployment counts:**")
-    import pandas as pd
-    outlier_stats = pd.DataFrame({
-        'Metric': ['Count', 'Mean', 'Std Dev', '25%', '50%', '75%', 'IQR Method'],
-        'unemployed_count': ['440', '14.2', '8.5', '8.1', '12.3', '18.7', '✅ No outliers beyond ±3 IQR']
-    })
-    st.dataframe(outlier_stats, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    st.markdown("### **Quality Assurance Summary**")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Completeness", "98%+", help="<2% missing across all tables")
     with col2:
-        st.metric("Outliers", "0 Critical", help="IQR validation passed")
-    with col3:
-        st.metric("Year Coverage", "2014-2024", help="11 complete years")
-    with col4:
-        st.metric("Rate Bounds", "✅ Valid", help="All rates between 0-100%")
+        st.markdown("#### **Step 2: Convert Year to Datetime** 📅")
+        st.markdown("**Year Column Transformation**")
+        year_transform = pd.DataFrame({
+            'Original': ['2014', '2015', '2016', '2017'],
+            'Converted': ['2014-01-01', '2015-01-01', '2016-01-01', '2017-01-01'],
+            'Type': ['object', 'datetime64[ns]', 'datetime64[ns]', 'datetime64[ns]']
+        })
+        st.dataframe(year_transform, use_container_width=True, hide_index=True)
+        
+        st.markdown("**Benefits**")
+        st.write("• Time-series analysis enabled")
+        st.write("• Temporal queries supported")
+        st.write("• Date arithmetic functions")
     
-    st.info("💡 **Narrative:** Module 2's systematic cleaning ensures analytical integrity. We validate data health, convert types, detect outliers using IQR methods, and confirm coverage consistency. This rigorous process prevents invalid data from contaminating downstream models and insights.")
+    with col3:
+        st.markdown("#### **Step 3: Outlier Discovery** 📊")
+        st.markdown("**Statistical Analysis**")
+        outlier_stats = pd.DataFrame({
+            'Metric': ['Mean', 'Std Dev', 'Q1', 'Q3', 'IQR'],
+            'Unemployment Rate': ['3.2%', '1.8%', '2.1%', '4.1%', '2.0%']
+        })
+        st.dataframe(outlier_stats, use_container_width=True, hide_index=True)
+        
+        st.markdown("**Outlier Detection**")
+        st.write("• Z-score method applied")
+        st.write("• Interquartile range analysis")
+        st.write("• Flagged extreme values")
+    
+    st.markdown("---")
+    
+    # Quality assurance summary - horizontal layout
+    st.markdown("### 🎯 **Quality Assurance Summary**")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("**Completeness** ℹ️")
+        st.markdown("# **98%+**")
+    
+    with col2:
+        st.markdown("**Outliers** ℹ️")
+        st.markdown("# **0 Critical**")
+    
+    with col3:
+        st.markdown("**Year Coverage** ℹ️")
+        st.markdown("# **2014-2024**")
+    
+    with col4:
+        st.markdown("**Rate Bounds** ℹ️")
+        st.markdown("# ✅ **Valid**")
 
+    st.info("💡 **Narrative:** Our robust ETL pipeline ensures data quality through systematic health checks, enables temporal analysis via datetime conversion, and maintains data integrity through outlier detection—creating a reliable foundation for analytics.")
 
-def slide_2_4_master_dataset():
-    """Slide 2.4: Preliminary SQL Analysis - Industry & Occupation Risk Lens"""
+def slide_2_3_master_dataset():
+    """Slide 2.3: Preliminary SQL Analysis - Industry & Occupation Risk Lens"""
     st.markdown("# SQL Preliminary Analysis")
     st.markdown("### Industry & Occupation Risk Lens")
     
@@ -389,14 +369,6 @@ def slide_2_4_master_dataset():
     - **Customer-facing roles** (Clerical, Service & Sales) remain most vulnerable, peaking above 7% during COVID-19 and staying elevated post-2022
     - **Technical trades and managerial roles** recover faster, reinforcing structural resilience
     - **Pattern reveals**: Structural rather than cyclical risk—automation and demand shifts magnify volatility beyond crisis periods
-    """)
-    
-    st.markdown("---")
-    st.markdown("### **Reskilling Angles for High-Risk Occupations**")
-    st.markdown("""
-    - Prioritize digital administration and customer analytics pathways for clerical and sales workers
-    - Link service workers with trade-up programmes in logistics automation and advanced manufacturing
-    - Fund targeted safety nets for gig and service workers during shocks to avoid hysteresis in unemployment
     """)
     
     st.info("💡 **Narrative:** This SQL-based preliminary analysis uncovers occupation-level risk patterns directly from transformed long tables. Customer-facing roles show persistent vulnerability while PMET occupations demonstrate resilience. These patterns set up our deeper **visual and demographic analysis in Act III**, where we'll unpack the HOW and WHY through three analytic lenses: Trend, Human Capital, and Comparative.")
@@ -828,25 +800,91 @@ def show_age_plot():
     # Load real data
     df_age = _load_age_data()
     
+    # Fallback to sample data if real data not available
+    if df_age is None or df_age.empty or len(df_age['occupation'].unique()) <= 1:
+        st.info("📊 Using sample data - Navigate to Module 2 to load actual unemployment datasets.")
+        # Create comprehensive sample data with multiple occupations
+        sample_data = []
+        occupations = ['Professionals', 'Service & Sales Workers', 'Clerical Support Workers', 
+                      'Managers & Administrators', 'Cleaners, Labourers & Related Workers']
+        age_groups = ['15 - 29', '30 - 39', '40 - 49', '50 - 59', '60 - 69']
+        
+        # Different patterns for different occupations
+        patterns = {
+            'Professionals': [15, 25, 30, 20, 10],
+            'Service & Sales Workers': [35, 25, 20, 15, 5],  
+            'Clerical Support Workers': [20, 30, 25, 20, 5],
+            'Managers & Administrators': [10, 20, 35, 25, 10],
+            'Cleaners, Labourers & Related Workers': [20, 20, 25, 25, 10]
+        }
+        
+        for occ in occupations:
+            for i, age in enumerate(age_groups):
+                sample_data.append({
+                    'occupation': occ,
+                    'age_group': age,
+                    'share_pct': patterns[occ][i]
+                })
+        
+        df_age = pd.DataFrame(sample_data)
+    
     if df_age is not None and not df_age.empty:
+        # Add occupation selector
+        occupations = sorted(df_age['occupation'].unique())
+        # Filter out 'Overall' if it exists as we have it as a separate option
+        occupations = [occ for occ in occupations if occ != 'Overall']
+        occupation_options = ["Overall (All Occupations)"] + occupations
+        
+        selected_occupation = st.selectbox(
+            "Select occupation to analyze:",
+            options=occupation_options,
+            index=0,
+            key="age_plot_occupation_selector"
+        )
+        
+        # Filter data based on selection
+        if selected_occupation == "Overall (All Occupations)":
+            display_data = df_age.copy()
+            chart_title = 'Age Group Differentials Across All Occupations'
+            x_axis = 'occupation'
+        else:
+            display_data = df_age[df_age['occupation'] == selected_occupation].copy()
+            chart_title = f'Age Group Distribution - {selected_occupation}'
+            x_axis = 'age_group'
+        
         age_groups = sorted(df_age['age_group'].unique())
         color_map = {age: px.colors.qualitative.Bold[i % len(px.colors.qualitative.Bold)] 
                     for i, age in enumerate(age_groups)}
         
-        fig = px.bar(
-            df_age, 
-            x='occupation', 
-            y='share_pct', 
-            color='age_group',
-            color_discrete_map=color_map,
-            category_orders={'age_group': age_groups},
-            labels={'occupation': 'Occupation', 'share_pct': 'Share (%)', 'age_group': 'Age Group'},
-            title='Age Group Differentials Within Top Occupations',
-            height=500
-        )
+        # Create different chart types based on selection
+        if selected_occupation == "Overall (All Occupations)":
+            fig = px.bar(
+                display_data, 
+                x=x_axis, 
+                y='share_pct', 
+                color='age_group',
+                color_discrete_map=color_map,
+                category_orders={'age_group': age_groups},
+                labels={'occupation': 'Occupation', 'share_pct': 'Share (%)', 'age_group': 'Age Group'},
+                title=chart_title,
+                height=500
+            )
+        else:
+            # For individual occupation, show age groups as separate bars
+            fig = px.bar(
+                display_data, 
+                x=x_axis, 
+                y='share_pct', 
+                color='age_group',
+                color_discrete_map=color_map,
+                category_orders={'age_group': age_groups},
+                labels={'age_group': 'Age Group', 'share_pct': 'Share (%)', 'occupation': 'Occupation'},
+                title=chart_title,
+                height=500
+            )
         
         fig.update_layout(
-            barmode='stack', 
+            barmode='stack' if selected_occupation == "Overall (All Occupations)" else 'group', 
             hovermode='x unified',
             legend_title_text='Age Group',
             yaxis=dict(range=[0, 100], title='Share of unemployed (%)')
@@ -854,19 +892,41 @@ def show_age_plot():
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Show dominant age group
-        total_by_age = df_age.groupby('age_group')['share_pct'].sum()
-        if not total_by_age.empty:
-            dominant_age = total_by_age.idxmax()
-            st.caption(f"**Overall pattern:** {dominant_age} age group shows highest concentration across top occupations")
-        
-        st.markdown("""
-        **Key Observations:**
-        - Youth (15-24) heavily represented in Service & Sales roles
-        - Mid-career (25-44) concentrated in Professional occupations
-        - Mature workers (55-64) overrepresented in Cleaners/manual labor
-        - Age stratification varies significantly by occupation type
-        """)
+        # Show insights based on selection
+        if selected_occupation == "Overall (All Occupations)":
+            total_by_age = df_age.groupby('age_group')['share_pct'].sum()
+            if not total_by_age.empty:
+                dominant_age = total_by_age.idxmax()
+                st.caption(f"**Overall pattern:** {dominant_age} age group shows highest concentration across top occupations")
+            
+            st.markdown("""
+            **Key Observations:**
+            - Youth (15-24) heavily represented in Service & Sales roles
+            - Mid-career (25-44) concentrated in Professional occupations
+            - Mature workers (55-64) overrepresented in Cleaners/manual labor
+            - Age stratification varies significantly by occupation type
+            """)
+        else:
+            # Show specific insights for selected occupation
+            if not display_data.empty:
+                max_age_group = display_data.loc[display_data['share_pct'].idxmax(), 'age_group']
+                max_share = display_data['share_pct'].max()
+                min_age_group = display_data.loc[display_data['share_pct'].idxmin(), 'age_group']
+                min_share = display_data['share_pct'].min()
+                
+                st.caption(f"**{selected_occupation}:** {max_age_group} dominates at {max_share:.1f}% while {min_age_group} shows lowest representation at {min_share:.1f}%")
+                
+                # Dynamic insights based on occupation
+                if "Service" in selected_occupation or "Sales" in selected_occupation:
+                    st.info("💡 **Service & Sales roles** typically attract younger workers (15-24) seeking entry-level positions and part-time opportunities.")
+                elif "Professional" in selected_occupation or "Manager" in selected_occupation:
+                    st.info("💡 **Professional roles** concentrate in mid-career ages (25-44) due to education and experience requirements.")
+                elif "Cleaner" in selected_occupation or "Labourer" in selected_occupation:
+                    st.info("💡 **Manual labor roles** often employ older workers (45+) and those with limited alternative opportunities.")
+                elif "Clerical" in selected_occupation:
+                    st.info("💡 **Clerical positions** show mixed age distribution as they serve as both entry-level and stable long-term roles.")
+                else:
+                    st.info("💡 Age distribution reflects occupation-specific entry barriers, career progression patterns, and market dynamics.")
     else:
         st.warning("Unable to load age group data. Please ensure Module 2 data is loaded or database connection is available.")
         st.info("Navigate to Module 2 to load the age unemployment dataset first.")
@@ -1791,6 +1851,65 @@ def slide_4_4_strategic_recommendations():
     """)
 
 
+@st.dialog("📋 7 Analytics-Ready Long Tables", width="large")
+def show_long_tables_detail():
+    """Display detailed information about the 7 long tables in a modal"""
+    st.markdown("### Complete Overview of Transformed Data")
+    st.caption("All 7 Ministry of Manpower tables converted to analytics-ready long format")
+    
+    import pandas as pd
+    long_tables = pd.DataFrame({
+        'Long Table': [
+            'unemployment_rate_by_occupation_long',
+            'unemployed_by_age_sex_long',
+            'unemployed_by_qualification_sex_long',
+            'unemployed_by_previous_occupation_sex_long',
+            'unemployed_pmets_by_age_long',
+            'long_term_unemployed_pmets_by_age_long',
+            'unemployed_by_marital_status_sex_long'
+        ],
+        'Rows': ['88', '440', '220', '264', '110', '110', '132'],
+        'Key Dimensions': [
+            'Occupation + Year',
+            'Age + Gender + Year',
+            'Qualification + Gender + Year', 
+            'Previous Occupation + Gender + Year',
+            'Age (PMET only) + Year',
+            'Age (Long-term PMET) + Year',
+            'Marital Status + Gender + Year'
+        ]
+    })
+    
+    st.dataframe(long_tables, use_container_width=True, hide_index=True)
+    
+    st.markdown("---")
+    st.markdown("### 🔍 **Analytics Capabilities Enabled**")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### Time-Series Analysis")
+        st.code("""-- Trend analysis by occupation
+SELECT year, occupation, 
+       AVG(unemployment_rate) as avg_rate
+FROM unemployment_rate_by_occupation_long
+WHERE year BETWEEN 2019 AND 2024
+GROUP BY year, occupation
+ORDER BY year, avg_rate DESC;""", language='sql')
+    
+    with col2:
+        st.markdown("#### Cross-Dimensional Joins")
+        st.code("""-- Demographics + occupation insights
+SELECT o.occupation, a.age_group,
+       AVG(o.unemployment_rate) as occ_rate,
+       AVG(a.unemployed_count) as age_count
+FROM occupation_long o
+JOIN age_sex_long a ON o.year = a.year
+GROUP BY o.occupation, a.age_group;""", language='sql')
+    
+    st.info("💡 This long format enables complex time-series analysis, demographic cross-tabulations, and seamless joins across all unemployment dimensions.")
+
+
 # ============================================================================
 # Navigation Helper
 # ============================================================================
@@ -1810,9 +1929,8 @@ def render_slide(act: int, slide: int, engine: Optional[sqlalchemy.engine.Engine
         (1, 3): slide_1_3_research_framework,
         (1, 4): slide_1_4_analytic_strategy,
         (2, 1): lambda: slide_2_1_data_sourcing(engine),
-        (2, 2): slide_2_2_preliminary_analysis,
-        (2, 3): slide_2_3_pipeline_architecture,
-        (2, 4): slide_2_4_master_dataset,
+        (2, 2): slide_2_2_pipeline_architecture,
+        (2, 3): slide_2_3_master_dataset,
         (3, 1): slide_3_1_trend_lens,
         (3, 2): slide_3_2_human_capital_lens,
         (3, 3): slide_3_3_comparative_lens,

@@ -5,11 +5,10 @@ Manages the presentation mode state, navigation, and rendering.
 import streamlit as st
 from typing import Optional
 import sqlalchemy
-from app_pages import presentation_slides
 
 
 # Presentation configuration
-SLIDES_PER_ACT = {1: 4, 2: 4, 3: 4, 4: 4}
+SLIDES_PER_ACT = {1: 4, 2: 3, 3: 4, 4: 4}
 TOTAL_ACTS = 4
 ACT_NAMES = {
     1: "ACT I: INTRODUCTION",
@@ -27,6 +26,8 @@ def initialize_presentation_state():
         st.session_state.current_act = 1
     if 'current_slide' not in st.session_state:
         st.session_state.current_slide = 1
+    if 'scroll_to_top' not in st.session_state:
+        st.session_state.scroll_to_top = False
 
 
 def toggle_presentation_mode():
@@ -49,6 +50,9 @@ def next_slide():
     elif current_act < TOTAL_ACTS:
         st.session_state.current_act += 1
         st.session_state.current_slide = 1
+    
+    # Flag to trigger scroll to top
+    st.session_state.scroll_to_top = True
 
 
 def previous_slide():
@@ -61,6 +65,9 @@ def previous_slide():
     elif current_act > 1:
         st.session_state.current_act -= 1
         st.session_state.current_slide = SLIDES_PER_ACT[st.session_state.current_act]
+    
+    # Flag to trigger scroll to top
+    st.session_state.scroll_to_top = True
 
 
 def goto_act(act_number: int):
@@ -68,6 +75,8 @@ def goto_act(act_number: int):
     if 1 <= act_number <= TOTAL_ACTS:
         st.session_state.current_act = act_number
         st.session_state.current_slide = 1
+        # Flag to trigger scroll to top
+        st.session_state.scroll_to_top = True
 
 
 def get_slide_progress() -> dict:
@@ -94,7 +103,7 @@ def render_presentation_controls():
     progress = get_slide_progress()
     
     # Compact divider
-    st.markdown("<div style='margin: 15px 0 10px 0; border-top: 1px solid rgba(128, 128, 128, 0.3);'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin: 10px 0 8px 0; border-top: 1px solid rgba(128, 128, 128, 0.3);'></div>", unsafe_allow_html=True)
     
     # Progress bar with label
     col_prog1, col_prog2 = st.columns([4, 1])
@@ -141,24 +150,32 @@ def render_presentation_controls():
 
 def render_presentation_header():
     """Render presentation mode header - compact version"""
+    # Add an invisible anchor for scroll-to-top
+    st.markdown('<div id="presentation-top"></div>', unsafe_allow_html=True)
+    
     st.markdown("""
         <style>
         .presentation-header {
-            background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
+            background: linear-gradient(90deg, #1a1a1a 0%, #2d2d2d 100%);
             padding: 12px 20px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            border-radius: 12px;
+            margin-bottom: 16px;
             color: white;
+            box-shadow: 0 4px 16px rgba(26, 26, 26, 0.25);
+            border: 1px solid rgba(45, 45, 45, 0.3);
+            border-left: 6px solid #e74c3c;
         }
         .presentation-title {
-            font-size: 1.5em;
-            font-weight: bold;
+            font-size: 1.6em;
+            font-weight: 700;
             margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         .presentation-subtitle {
             font-size: 0.9em;
-            margin: 3px 0 0 0;
-            opacity: 0.9;
+            margin: 4px 0 0 0;
+            opacity: 0.95;
+            font-weight: 400;
         }
         </style>
         <div class="presentation-header">
@@ -216,68 +233,232 @@ def render_presentation_mode(engine: Optional[sqlalchemy.engine.Engine]):
             /* Background will adapt to user's theme preference */
         }
         
-        /* Main content container - subtle styling that works with both themes */
+        /* Main content container - SIT Learn branding */
         div[data-testid="stVerticalBlock"] > div:has(div.element-container) {
-            background-color: var(--background-color, rgba(255, 255, 255, 0.05));
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(128, 128, 128, 0.2);
+            background-color: var(--background-color, rgba(255, 255, 255, 0.98));
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(26, 26, 26, 0.08);
+            border: 2px solid rgba(231, 76, 60, 0.1);
+            border-left: 6px solid #e74c3c;
         }
         
-        /* Improve text readability - adaptive colors */
+        /* Dark theme adaptations */
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="stVerticalBlock"] > div:has(div.element-container) {
+                background-color: rgba(26, 26, 26, 0.05);
+                border-color: rgba(231, 76, 60, 0.25);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            }
+        }
+        
+        /* SIT Learn typography - authentic colors */
         .stMarkdown h1 {
-            color: #3b82f6;
+            color: #1a1a1a;
             margin-top: 0;
-            margin-bottom: 0.5em;
-            font-size: 2em;
+            margin-bottom: 0.3em;
+            font-size: 2.1em;
+            font-weight: 700;
+            border-bottom: 3px solid #e74c3c;
+            padding-bottom: 8px;
         }
         .stMarkdown h2 {
-            color: #60a5fa;
+            color: #2d2d2d;
             margin-top: 0.5em;
-            margin-bottom: 0.5em;
+            margin-bottom: 0.3em;
             font-size: 1.5em;
+            font-weight: 600;
         }
         .stMarkdown h3 {
-            color: #93c5fd;
+            color: #1a1a1a;
             margin-top: 0.4em;
-            margin-bottom: 0.4em;
+            margin-bottom: 0.2em;
             font-size: 1.2em;
+            font-weight: 500;
+        }
+        .stMarkdown h4 {
+            color: #2d2d2d;
+            margin-top: 0.3em;
+            margin-bottom: 0.2em;
+            font-size: 1.05em;
+            font-weight: 500;
+        }
+        .stMarkdown h5 {
+            color: #e74c3c;
+            margin-top: 0.2em;
+            margin-bottom: 0.2em;
+            font-size: 1.0em;
+            font-weight: 600;
+        }
+        
+        /* Dark theme typography adaptations */
+        @media (prefers-color-scheme: dark) {
+            .stMarkdown h1 {
+                color: #f8f9fa;
+                border-bottom-color: #ff6b5b;
+            }
+            .stMarkdown h2 {
+                color: #e9ecef;
+            }
+            .stMarkdown h3 {
+                color: #f8f9fa;
+            }
+            .stMarkdown h4 {
+                color: #e9ecef;
+            }
+            .stMarkdown h5 {
+                color: #ff6b5b;
+            }
         }
         
         /* Compact spacing for better vertical usage */
         .stMarkdown p {
-            margin-bottom: 0.5em;
+            margin-bottom: 0.3em;
         }
         .stMarkdown ul, .stMarkdown ol {
-            margin-top: 0.3em;
-            margin-bottom: 0.5em;
+            margin-top: 0.2em;
+            margin-bottom: 0.3em;
         }
         
-        /* Make metrics more prominent */
-        div[data-testid="stMetricValue"] {
-            font-size: 1.8em;
+        /* Compact horizontal rules */
+        .stMarkdown hr {
+            margin: 0.8em 0;
+            border: none;
+            border-top: 2px solid rgba(231, 76, 60, 0.2);
         }
         
-        /* Compact dataframes */
-        div[data-testid="stDataFrame"] {
-            font-size: 0.9em;
-        }
-        
-        /* Better info boxes - theme adaptive */
+        /* Compact info boxes */
         div[data-testid="stAlert"] {
-            padding: 12px;
-            margin: 10px 0;
+            padding: 8px 12px;
+            margin: 8px 0;
             border-radius: 6px;
         }
         
-        /* Code blocks - more compact */
+        /* Compact code blocks */
         .stCodeBlock {
-            margin: 10px 0;
+            margin: 8px 0;
         }
         pre {
             font-size: 0.85em;
-            padding: 10px;
+            padding: 8px;
+        }
+        
+        /* SIT Learn authentic metrics */
+        div[data-testid="stMetricValue"] {
+            font-size: 2.1em;
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+        div[data-testid="stMetricLabel"] {
+            color: #2d2d2d;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        div[data-testid="stMetricDelta"] {
+            font-weight: 500;
+        }
+        
+        /* Dark theme metrics */
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="stMetricValue"] {
+                color: #f8f9fa;
+            }
+            div[data-testid="stMetricLabel"] {
+                color: #e9ecef;
+            }
+        }
+        
+        /* SIT Learn branded dataframes */
+        div[data-testid="stDataFrame"] {
+            font-size: 0.95em;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px rgba(26, 26, 26, 0.08);
+            border: 1px solid rgba(231, 76, 60, 0.15);
+        }
+        
+        /* Dark theme dataframes */
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="stDataFrame"] {
+                box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+                border-color: rgba(231, 76, 60, 0.3);
+            }
+        }
+        
+        /* SIT Learn info boxes */
+        div[data-testid="stAlert"] {
+            padding: 18px;
+            margin: 18px 0;
+            border-radius: 12px;
+            border-left: 5px solid #e74c3c;
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+        
+        /* Dark theme info boxes */
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="stAlert"] {
+                background-color: rgba(231, 76, 60, 0.1);
+                border-left-color: #ff6b5b;
+            }
+        }
+        
+        /* SIT Learn containers */
+        div[data-testid="stContainer"] {
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            border-radius: 12px;
+            padding: 22px;
+            background-color: rgba(231, 76, 60, 0.02);
+        }
+        
+        /* Dark theme containers */
+        @media (prefers-color-scheme: dark) {
+            div[data-testid="stContainer"] {
+                background-color: rgba(231, 76, 60, 0.05);
+                border-color: rgba(231, 76, 60, 0.25);
+            }
+        }
+        
+        /* SIT Learn accent elements */
+        .stMarkdown strong {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .stMarkdown strong {
+                color: #ff6b5b;
+            }
+        }
+        
+        /* Enhanced bullet points */
+        .stMarkdown li {
+            margin-bottom: 0.4em;
+            color: inherit;
+        }
+        
+        /* SIT Learn code blocks */
+        .stCodeBlock {
+            margin: 18px 0;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .stCodeBlock {
+                border-left-color: #ff6b5b;
+            }
+        }
+        
+        pre {
+            font-size: 0.9em;
+            padding: 16px;
+            background-color: rgba(26, 26, 26, 0.03);
+            border-radius: 10px;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            pre {
+                background-color: rgba(26, 26, 26, 0.2);
+            }
         }
         </style>
     """, unsafe_allow_html=True)
@@ -289,19 +470,54 @@ def render_presentation_mode(engine: Optional[sqlalchemy.engine.Engine]):
     current_act = st.session_state.current_act
     current_slide = st.session_state.current_slide
     
+    # Add scroll trigger before slide content
+    if st.session_state.get('scroll_to_top', False):
+        # Use HTML with autofocus to force scroll
+        st.markdown(
+            '<input type="text" id="scroll-trigger" style="position:absolute;top:-1000px;left:-1000px;" autofocus>',
+            unsafe_allow_html=True
+        )
+    
     # Slide content container
     with st.container():
+        # Import here to avoid circular imports
+        from app_pages import presentation_slides
         presentation_slides.render_slide(current_act, current_slide, engine)
     
     # Render controls
     render_presentation_controls()
     
-    # Auto-scroll to top on slide navigation
-    st.markdown("""
-        <script>
-        window.parent.document.querySelector('section.main').scrollTo(0, 0);
-        </script>
-    """, unsafe_allow_html=True)
+    # Force scroll to top using multiple methods
+    if st.session_state.get('scroll_to_top', False):
+        st.markdown("""
+            <script>
+            // Multiple scroll-to-top methods for better compatibility
+            setTimeout(function() {
+                // Method 1: Scroll to anchor if available
+                const topAnchor = window.parent.document.getElementById('presentation-top');
+                if (topAnchor) {
+                    topAnchor.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
+                
+                // Method 2: Scroll main content area
+                const mainContainer = window.parent.document.querySelector('.main .block-container');
+                if (mainContainer) mainContainer.scrollTop = 0;
+                
+                // Method 3: Scroll main section
+                const mainSection = window.parent.document.querySelector('section.main');
+                if (mainSection) mainSection.scrollTo(0, 0);
+                
+                // Method 4: Scroll entire window
+                window.parent.scrollTo(0, 0);
+                
+                // Method 5: Scroll document body
+                if (window.parent.document.body) window.parent.document.body.scrollTop = 0;
+                if (window.parent.document.documentElement) window.parent.document.documentElement.scrollTop = 0;
+            }, 50);
+            </script>
+        """, unsafe_allow_html=True)
+        # Reset the flag
+        st.session_state.scroll_to_top = False
 
 
 def render_mode_toggle_button():
