@@ -2061,6 +2061,186 @@ GROUP BY o.occupation, a.age_group;""", language='sql')
 
 
 # ============================================================================
+# ACT V: ENDING (1 Slide)
+# ============================================================================
+
+def slide_5_1_journey_summary_and_qa():
+    """Slide 5.1: Journey Summary & Q&A"""
+    st.markdown("# Our Analytical Journey")
+    st.markdown("### From Question to Action: Acts I-IV Summary")
+    
+    st.markdown("---")
+    
+    # Journey summary with 4 acts
+    st.markdown("## **📚 The Story We Told**")
+    
+    col1, col2, col3, col4 = st.columns(4, gap="medium")
+    
+    with col1:
+        st.markdown("### **🎬 ACT I**")
+        st.markdown("**INTRODUCTION**")
+        st.markdown("""
+        **The Challenge**
+        - Structural unemployment shifts
+        - Need for evidence-based insights
+        - Which occupations need support?
+        
+        **The Hypothesis**
+        - Lower-skilled jobs face higher risk
+        - Professional roles more resilient
+        """)
+        st.info("**We asked the right question**")
+    
+    with col2:
+        st.markdown("### **🛠️ ACT II**")
+        st.markdown("**PREPARATION**")
+        st.markdown("""
+        **Data Foundation**
+        - Wide → Long transformation
+        - Quality validation pipeline
+        - 11 years of MOM data
+        
+        **SQL Analysis**
+        - Occupation risk patterns
+        - Period-based insights
+        """)
+        st.info("**We built solid foundations**")
+    
+    with col3:
+        st.markdown("### **🔍 ACT III**")
+        st.markdown("**ANALYSIS**")
+        st.markdown("""
+        **Three Lenses**
+        - Trend: COVID impact patterns
+        - Human Capital: Demographics
+        - Comparative: PMET vs Non-PMET
+        
+        **Key Discovery**
+        - 5-7x risk multiplier confirmed
+        """)
+        st.info("**We discovered the truth**")
+    
+    with col4:
+        st.markdown("### **🎯 ACT IV**")
+        st.markdown("**PREDICTION & ACTION**")
+        st.markdown("""
+        **Forecasting**
+        - KNN models (MAE: 0.34pp)
+        - 2025 unemployment predictions
+        
+        **Strategic Response**
+        - 4 targeted interventions
+        - 12-month action window
+        """)
+        st.info("**We charted the path forward**")
+    
+    st.markdown("---")
+    
+    # Key insights from the journey
+    st.markdown("## **� What We Learned**")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### **📊 Data Insights**")
+        st.markdown("""
+        ✅ **Service & Sales Workers**: 7.05% peak unemployment (COVID)  
+        ✅ **Clerical Support**: Persistent 5.47% vs 2.57% for Professionals  
+        ✅ **Youth (15-29)**: 26.9% of unemployed population  
+        ✅ **Education erosion**: Degree holders now 40.7% of unemployed  
+        ✅ **Predictable patterns**: KNN achieves 90%+ accuracy  
+        """)
+    
+    with col2:
+        st.markdown("### **🎯 Strategic Actions**")
+        st.markdown("""
+        🎓 **Targeted reskilling** for 15,000 vulnerable workers  
+        👥 **Youth integration** programs for 8,500 placements  
+        📊 **Data enhancement** for precision targeting  
+        🔄 **Adaptive monitoring** with quarterly updates  
+        💰 **3.8:1 ROI** through proactive intervention  
+        """)
+    
+    st.markdown("---")
+    
+    # The transformation
+    st.markdown("## **🚀 The Transformation**")
+    
+    col_before, col_arrow, col_after = st.columns([3, 1, 3])
+    
+    with col_before:
+        st.markdown("### **❌ Before**")
+        st.markdown("""
+        - Reactive unemployment response
+        - Broad, unfocused programs
+        - Limited data integration
+        - Crisis-driven decisions
+        - Unclear ROI measurement
+        """)
+    
+    with col_arrow:
+        st.markdown("### **→**")
+        st.markdown("<div style='text-align: center; font-size: 4em;'>🔄</div>", unsafe_allow_html=True)
+    
+    with col_after:
+        st.markdown("### **✅ After**")
+        st.markdown("""
+        - Predictive intervention strategy
+        - Precision-targeted programs
+        - Integrated data analytics
+        - Evidence-driven policy
+        - Measurable economic impact
+        """)
+    
+    st.markdown("---")
+    
+    # Q&A Section - Opening to the floor
+    st.markdown("## **❓ Questions & Discussion**")
+    
+    st.markdown("""
+    ### **Now we open the floor for your questions and discussion.**
+    
+    **Some areas you might want to explore:**
+    - Implementation challenges and solutions
+    - Data methodology and reliability
+    - Budget considerations and approval process
+    - Industry partnerships and stakeholder buy-in
+    - Timeline feasibility and risk factors
+    - Alternative approaches or recommendations
+    """)
+    
+    # Interactive Q&A prompt
+    st.markdown("---")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("""
+        <div style='text-align: center; padding: 30px; border: 2px dashed #1f77b4; border-radius: 10px; background-color: #f0f8ff;'>
+        <h3>🎤 Your Questions Welcome</h3>
+        <p style='font-size: 1.2em; margin-bottom: 20px;'>
+        What aspects of our unemployment analysis and strategy would you like to discuss?
+        </p>
+        <p style='font-style: italic; color: #666;'>
+        → Implementation details<br/>
+        → Data methodology<br/>
+        → Strategic alternatives<br/>
+        → Next steps
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Closing statement
+    st.success("""
+    💡 **Thank you for joining us on this analytical journey.** We've transformed 11 years of unemployment data 
+    into a clear roadmap for Singapore's workforce resilience. The evidence is compelling, the strategy is sound, 
+    and the path forward is mapped. **Now let's discuss how to make it happen.**
+    """)
+
+
+# ============================================================================
 # Navigation Helper
 # ============================================================================
 
@@ -2069,8 +2249,8 @@ def render_slide(act: int, slide: int, engine: Optional[sqlalchemy.engine.Engine
     Render the appropriate slide based on act and slide number.
     
     Args:
-        act: Act number (1-4)
-        slide: Slide number within act (1-4)
+        act: Act number (1-5)
+        slide: Slide number within act (1-4, 1 for Act V)
         engine: Database engine (optional)
     """
     slide_map = {
@@ -2089,6 +2269,7 @@ def render_slide(act: int, slide: int, engine: Optional[sqlalchemy.engine.Engine
         (4, 2): slide_4_2_2025_forecasts,
         (4, 3): slide_4_3_intervention_window,
         (4, 4): slide_4_4_strategic_recommendations,
+        (5, 1): slide_5_1_journey_summary_and_qa,
     }
     
     slide_func = slide_map.get((act, slide))

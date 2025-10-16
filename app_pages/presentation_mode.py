@@ -8,16 +8,15 @@ import sqlalchemy
 
 
 # Presentation configuration
-SLIDES_PER_ACT = {1: 4, 2: 3, 3: 4, 4: 4}
-TOTAL_ACTS = 4
+SLIDES_PER_ACT = {1: 4, 2: 3, 3: 4, 4: 4, 5: 1}
+TOTAL_ACTS = 5
 ACT_NAMES = {
     1: "ACT I: INTRODUCTION",
-    2: "ACT II: PREPARATION",
+    2: "ACT II: PREPARATION", 
     3: "ACT III: ANALYSIS",
-    4: "ACT IV: PREDICTION & PROPOSITION"
+    4: "ACT IV: PREDICTION & PROPOSITION",
+    5: "ACT V: ENDING"
 }
-
-
 def initialize_presentation_state():
     """Initialize session state for presentation mode"""
     if 'presentation_mode' not in st.session_state:
@@ -49,6 +48,10 @@ def next_slide():
         st.session_state.current_slide += 1
     elif current_act < TOTAL_ACTS:
         st.session_state.current_act += 1
+        st.session_state.current_slide = 1
+    # Special case: move from last slide of Act IV to Act V
+    elif current_act == 4 and current_slide == SLIDES_PER_ACT[4]:
+        st.session_state.current_act = 5
         st.session_state.current_slide = 1
     
     # Flag to trigger scroll to top
