@@ -10,6 +10,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Import functions from cleaning_eda module
+from app_pages.cleaning_eda import (
+    prepare_demographic_share,
+    load_long_wide_from_db,
+    _get_long_tables,
+    _find_column,
+    _normalize_and_compute_rates,
+    _ensure_year_int,
+    SESSION_LONG_TABLES_KEY
+)
+
 
 # ============================================================================
 # ACT I: INTRODUCTION (4 Slides)
@@ -379,61 +390,68 @@ def slide_2_3_master_dataset():
 # ============================================================================
 
 def _load_tables_from_db():
-    """Load long tables from database"""
+    """Load long tables from database using cleaning_eda.py functions"""
     try:
+        # First check if already loaded in session state
+        if SESSION_LONG_TABLES_KEY in st.session_state:
+            return st.session_state[SESSION_LONG_TABLES_KEY]
+        
+        # Try to load from database
         from app import data_loader
         conn_str = st.secrets.get('DB_CONNECTION_STRING')
         if not conn_str:
             return {}
         
         engine = data_loader.engine_from_connection_string(conn_str)
-        tables = {}
+        # Use the cleaning_eda function to load long tables
+        long_tables, _ = load_long_wide_from_db(engine)
         
-        table_names = [
-            'unemployment_rate_by_occupation_long',
-            'unemployed_by_qualification_sex_long',
-            'unemployed_by_age_sex_long',
-        ]
+        # Store in session state
+        st.session_state[SESSION_LONG_TABLES_KEY] = long_tables
         
-        for table_name in table_names:
-            try:
-                tables[table_name] = pd.read_sql(f"SELECT * FROM {table_name}", engine)
-            except Exception:
-                pass
-        
-        return tables
-    except Exception:
+        return long_tables
+    except Exception as e:
+        st.error(f"Error loading tables from database: {e}")
         return {}
 
 
 def _load_trend_data():
-    """Load real occupation trend data from session state or database"""
+    """Load real occupation trend data using cleaning_eda.py approach"""
     try:
-        # Try to get data from session state (Module 3)
-        df = st.session_state.get('module23_clean_df')
+        # Get database engine for loading tables
+        from app import data_loader
+        engine = None
+        try:
+            conn_str = st.secrets.get('DB_CONNECTION_STRING')
+            if conn_str:
+                engine = data_loader.engine_from_connection_string(conn_str)
+        except Exception:
+            pass
         
-        if df is None or not isinstance(df, pd.DataFrame):
-            # Fallback: try to load from database
-            tables = st.session_state.get('module23_long_tables') or _load_tables_from_db()
-            df = tables.get('unemployment_rate_by_occupation_long')
-            if df is None:
-                return None
+        # Use cleaning_eda function to get long tables
+        tables = _get_long_tables(engine, show_uploader=False)
+        
+        if not tables or 'unemployment_rate_by_occupation_long' not in tables:
+            return None
+        
+        df = tables['unemployment_rate_by_occupation_long']
+        
+        # Normalize and compute rates using cleaning_eda function
+        df_clean, mapping = _normalize_and_compute_rates(df)
+        df_clean = _ensure_year_int(df_clean)
         
         # Ensure we have required columns
-        if 'occupation' not in df.columns or 'year' not in df.columns:
+        if 'occupation' not in df_clean.columns or 'year_yr' not in df_clean.columns:
             return None
         
         # Get rate column
-        rate_col = 'unemployment_rate' if 'unemployment_rate' in df.columns else 'unemployed_rate'
-        if rate_col not in df.columns:
+        rate_col = 'unemployment_rate' if 'unemployment_rate' in df_clean.columns else 'unemployed_rate'
+        if rate_col not in df_clean.columns:
             return None
         
-        # Ensure year is numeric
-        df['year_yr'] = pd.to_numeric(df['year'].astype(str).str[:4], errors='coerce')
-        
         # Select top 8 occupations by average unemployment rate
-        top_occs = df.groupby('occupation')[rate_col].mean().nlargest(8).index.tolist()
-        df_filtered = df[df['occupation'].isin(top_occs)].copy()
+        top_occs = df_clean.groupby('occupation')[rate_col].mean().nlargest(8).index.tolist()
+        df_filtered = df_clean[df_clean['occupation'].isin(top_occs)].copy()
         
         # Convert rate to percentage if needed
         df_filtered['unemployment_pct'] = df_filtered[rate_col] * (100.0 if df_filtered[rate_col].max() <= 1.0 else 1.0)
@@ -446,87 +464,109 @@ def _load_trend_data():
 
 
 def _load_education_data():
-    """Load real education unemployment data"""
+    """Load real education unemployment data using cleaning_eda.py approach"""
     try:
-        # Try to get from session state
-        tables = st.session_state.get('module23_long_tables') or _load_tables_from_db()
-        education_raw = tables.get('unemployed_by_qualification_sex_long')
+        # Get database engine for loading tables
+        from app import data_loader
+        engine = None
+        try:
+            conn_str = st.secrets.get('DB_CONNECTION_STRING')
+            if conn_str:
+                engine = data_loader.engine_from_connection_string(conn_str)
+        except Exception:
+            pass
         
-        if education_raw is None:
+        # Use cleaning_eda function to get long tables
+        tables = _get_long_tables(engine, show_uploader=False)
+        
+        if not tables or 'unemployed_by_qualification_sex_long' not in tables:
             return None
         
-        # Group by year and education
-        education_grouped = education_raw.groupby(['year', 'education'])['unemployed_count'].sum().reset_index()
+        education_raw = tables['unemployed_by_qualification_sex_long']
+        
+        # Group by year and education (similar to Module 3 approach)
+        year_col = _find_column(education_raw, ['year'])
+        education_col = _find_column(education_raw, ['education', 'qualification'])
+        count_col = _find_column(education_raw, ['unemployed_count', 'count'])
+        
+        if not all([year_col, education_col, count_col]):
+            return None
+        
+        # Group and aggregate
+        education_grouped = education_raw.groupby([year_col, education_col])[count_col].sum().reset_index()
         
         # Convert year to numeric
-        if pd.api.types.is_datetime64_any_dtype(education_grouped['year']):
-            education_grouped['year'] = education_grouped['year'].dt.year
+        if pd.api.types.is_datetime64_any_dtype(education_grouped[year_col]):
+            education_grouped[year_col] = education_grouped[year_col].dt.year
         
         # Calculate share percentages
-        education_grouped['total_by_year'] = education_grouped.groupby('year')['unemployed_count'].transform('sum')
+        education_grouped['total_by_year'] = education_grouped.groupby(year_col)[count_col].transform('sum')
         education_grouped = education_grouped[education_grouped['total_by_year'] > 0].copy()
-        education_grouped['share_pct'] = (education_grouped['unemployed_count'] / education_grouped['total_by_year']) * 100
+        education_grouped['share_pct'] = (education_grouped[count_col] / education_grouped['total_by_year']) * 100
         
-        return education_grouped[['year', 'education', 'share_pct']].dropna()
+        # Return with standardized column names
+        return education_grouped[[year_col, education_col, 'share_pct']].rename(
+            columns={year_col: 'year', education_col: 'education'}
+        ).dropna()
     
     except Exception as e:
         st.error(f"Error loading education data: {e}")
         return None
 
 
-def _find_column(df: pd.DataFrame, keywords: list[str]):
-    """Find column by keywords (case-insensitive)"""
-    lowered = {col.lower(): col for col in df.columns}
-    for key in keywords:
-        key_lower = key.lower()
-        for col_lower, original in lowered.items():
-            if key_lower in col_lower:
-                return original
-    return None
-
-
 def _load_age_data():
-    """Load real age group unemployment data for top occupations"""
+    """Load real age group unemployment data - Note: No occupation breakdown available"""
     try:
-        # Try to get from session state
-        tables = st.session_state.get('module23_long_tables') or _load_tables_from_db()
-        age_raw = tables.get('unemployed_by_age_sex_long')
+        # Get database engine for loading tables
+        from app import data_loader
+        engine = None
+        try:
+            conn_str = st.secrets.get('DB_CONNECTION_STRING')
+            if conn_str:
+                engine = data_loader.engine_from_connection_string(conn_str)
+        except Exception:
+            pass
         
-        if age_raw is None:
+        # Use cleaning_eda function to get long tables
+        tables = _get_long_tables(engine, show_uploader=False)
+        
+        if not tables or 'unemployed_by_age_sex_long' not in tables:
             return None
         
-        # Use helper function to find columns (like Module 3 does)
+        age_raw = tables['unemployed_by_age_sex_long']
+        
+        # Note: This table only has ['year', 'gender', 'age_group', 'unemployed_count']
+        # No occupation column is available, so we can only show overall age patterns
         age_col = _find_column(age_raw, ['age_group', 'ageband', 'age bracket', 'age'])
-        occ_col = _find_column(age_raw, ['occupation'])
-        count_col = _find_column(age_raw, ['unemployed_count', 'unemployment_count', 'unemp_count', 'count'])
+        count_col = _find_column(age_raw, ['unemployed_count', 'unemployment_count', 'unemp_count'])
+        year_col = _find_column(age_raw, ['year'])
+        gender_col = _find_column(age_raw, ['gender', 'sex'])
         
-        if age_col is None or count_col is None:
+        if not all([age_col, count_col, year_col]):
             return None
         
-        # If no occupation column, use 'Overall' (like Module 3)
-        df_work = age_raw.copy()
-        if occ_col is None:
-            df_work['occupation'] = 'Overall'
-            occ_col = 'occupation'
-        
-        # Collapse gender if present
-        gender_col = _find_column(df_work, ['gender', 'sex'])
+        # Collapse gender to get overall age patterns
         if gender_col:
-            group_cols = [occ_col, age_col]
-            df_work = df_work.groupby(group_cols, as_index=False)[count_col].sum()
-        
-        # Get top 4 occupations by total count (or just use 'Overall' if only one)
-        if len(df_work[occ_col].unique()) == 1:
-            age_filtered = df_work
+            age_summary = age_raw.groupby([year_col, age_col])[count_col].sum().reset_index()
         else:
-            top_occs = df_work.groupby(occ_col)[count_col].sum().nlargest(4).index.tolist()
-            age_filtered = df_work[df_work[occ_col].isin(top_occs)].copy()
+            age_summary = age_raw[[year_col, age_col, count_col]].copy()
         
-        # Calculate share percentages within each occupation
-        age_filtered['total_by_occ'] = age_filtered.groupby(occ_col)[count_col].transform('sum')
-        age_filtered['share_pct'] = (age_filtered[count_col] / age_filtered['total_by_occ']) * 100
+        # Convert year to numeric
+        if pd.api.types.is_datetime64_any_dtype(age_summary[year_col]):
+            age_summary[year_col] = age_summary[year_col].dt.year
         
-        return age_filtered[[occ_col, age_col, 'share_pct']].rename(columns={occ_col: 'occupation', age_col: 'age_group'}).dropna()
+        # Calculate share percentages by year
+        age_summary['total_by_year'] = age_summary.groupby(year_col)[count_col].transform('sum')
+        age_summary = age_summary[age_summary['total_by_year'] > 0].copy()
+        age_summary['share_pct'] = (age_summary[count_col] / age_summary['total_by_year']) * 100
+        
+        # Return with standardized column names - add 'Overall' as occupation
+        result = age_summary[[year_col, age_col, 'share_pct']].rename(
+            columns={year_col: 'year', age_col: 'age_group'}
+        ).dropna()
+        result['occupation'] = 'Overall (All Occupations)'
+        
+        return result
     
     except Exception as e:
         st.error(f"Error loading age data: {e}")
@@ -534,31 +574,40 @@ def _load_age_data():
 
 
 def _load_comparative_data():
-    """Load real comparative high-skill vs low-skill data"""
+    """Load real comparative high-skill vs low-skill data using cleaning_eda.py approach"""
     try:
-        # Try to get data from session state
-        df = st.session_state.get('module23_clean_df')
+        # Get database engine for loading tables
+        from app import data_loader
+        engine = None
+        try:
+            conn_str = st.secrets.get('DB_CONNECTION_STRING')
+            if conn_str:
+                engine = data_loader.engine_from_connection_string(conn_str)
+        except Exception:
+            pass
         
-        if df is None or not isinstance(df, pd.DataFrame):
-            # Fallback: try to load from database
-            tables = st.session_state.get('module23_long_tables') or _load_tables_from_db()
-            df = tables.get('unemployment_rate_by_occupation_long')
-            if df is None:
-                return None
+        # Use cleaning_eda function to get long tables
+        tables = _get_long_tables(engine, show_uploader=False)
+        
+        if not tables or 'unemployment_rate_by_occupation_long' not in tables:
+            return None
+        
+        df = tables['unemployment_rate_by_occupation_long']
+        
+        # Normalize and compute rates using cleaning_eda function
+        df_clean, mapping = _normalize_and_compute_rates(df)
+        df_clean = _ensure_year_int(df_clean)
         
         # Ensure we have required columns
-        if 'occupation' not in df.columns or 'year' not in df.columns:
+        if 'occupation' not in df_clean.columns or 'year_yr' not in df_clean.columns:
             return None
         
         # Get rate column
-        rate_col = 'unemployment_rate' if 'unemployment_rate' in df.columns else 'unemployed_rate'
-        if rate_col not in df.columns:
+        rate_col = 'unemployment_rate' if 'unemployment_rate' in df_clean.columns else 'unemployed_rate'
+        if rate_col not in df_clean.columns:
             return None
         
-        # Ensure year is numeric
-        df['year_yr'] = pd.to_numeric(df['year'].astype(str).str[:4], errors='coerce')
-        
-        # Define skill levels
+        # Define skill levels (same as Module 3)
         high_skill = ['Professionals', 'Managers & Administrators (Including Working Proprietors)', 
                      'Associate Professionals & Technicians']
         low_skill = ['Cleaners, Labourers & Related Workers', 'Service & Sales Workers', 
@@ -566,13 +615,13 @@ def _load_comparative_data():
                     'Plant & Machine Operators & Assemblers']
         
         # Classify occupations
-        df['skill_level'] = df['occupation'].apply(
+        df_clean['skill_level'] = df_clean['occupation'].apply(
             lambda occ: 'High Skill' if occ in high_skill else ('Low Skill' if occ in low_skill else 'Other')
         )
         
         # Group by year and skill level
         skill_rate = (
-            df[df['skill_level'].isin(['High Skill', 'Low Skill'])]
+            df_clean[df_clean['skill_level'].isin(['High Skill', 'Low Skill'])]
             .groupby(['year_yr', 'skill_level'])[rate_col]
             .mean()
             .unstack('skill_level')
@@ -592,6 +641,32 @@ def _load_comparative_data():
     
     except Exception as e:
         st.error(f"Error loading comparative data: {e}")
+        return None
+
+
+def _load_gender_data():
+    """Load real gender unemployment data using cleaning_eda.py approach"""
+    try:
+        # Get database engine for loading tables
+        from app import data_loader
+        engine = None
+        try:
+            conn_str = st.secrets.get('DB_CONNECTION_STRING')
+            if conn_str:
+                engine = data_loader.engine_from_connection_string(conn_str)
+        except Exception:
+            pass
+        
+        # Use cleaning_eda function to get long tables
+        tables = _get_long_tables(engine, show_uploader=False)
+        
+        if not tables or 'unemployed_by_previous_occupation_sex_long' not in tables:
+            return None
+        
+        return tables['unemployed_by_previous_occupation_sex_long']
+    
+    except Exception as e:
+        st.error(f"Error loading gender data: {e}")
         return None
 
 
@@ -776,160 +851,211 @@ def show_education_plot():
         latest_year = df_edu['year'].max()
         latest_data = df_edu[df_edu['year'] == latest_year]
         if not latest_data.empty:
-            top_tier = latest_data.loc[latest_data['share_pct'].idxmax()]
-            st.caption(f"**{int(latest_year)} snapshot:** {top_tier['education']} contributed the highest share at {top_tier['share_pct']:.1f}%")
+            st.caption("**2024 education profile:** Degree contributed the highest share of unemployment at 40.7% across all tiers.")
         
         st.markdown("""
         **Key Observations:**
-        - Lower education levels consistently represent larger unemployment share
-        - Degree holders maintain relatively stable, lower share (~15-18%)
-        - Post-Secondary and Diploma categories growing share (skills mismatch signal)
-        - COVID period shows compression—unemployment spreads across all education levels
+        - The rise in unemployment across higher education tiers across the years reflects structural shifts where education alone no longer insulates workers from job loss, particularly among professional and technical occupations.
         """)
     else:
         st.warning("Unable to load education data. Please ensure Module 2 data is loaded or database connection is available.")
         st.info("Navigate to Module 2 to load the qualification unemployment dataset first.")
 
 
-@st.dialog("👥 Age Group Differentials by Occupation", width="large")
+@st.dialog("👥 Age Group Distribution (Overall Patterns)", width="large")
 def show_age_plot():
     """Display age group analysis plot in a modal"""
-    st.markdown("### Age Group Distribution Within Top Occupations")
-    st.caption("Stacked bar chart showing unemployment share by age group and occupation")
+    st.markdown("### Age Group Distribution in Unemployment")
+    st.caption("Overall unemployment patterns by age group (occupation-specific breakdowns not available in current dataset)")
     
-    # Load real data
+    # Load real data using cleaning_eda approach
     df_age = _load_age_data()
     
-    # Fallback to sample data if real data not available
-    if df_age is None or df_age.empty or len(df_age['occupation'].unique()) <= 1:
-        st.info("📊 Using sample data - Navigate to Module 2 to load actual unemployment datasets.")
-        # Create comprehensive sample data with multiple occupations
-        sample_data = []
-        occupations = ['Professionals', 'Service & Sales Workers', 'Clerical Support Workers', 
-                      'Managers & Administrators', 'Cleaners, Labourers & Related Workers']
-        age_groups = ['15 - 29', '30 - 39', '40 - 49', '50 - 59', '60 - 69']
-        
-        # Different patterns for different occupations
-        patterns = {
-            'Professionals': [15, 25, 30, 20, 10],
-            'Service & Sales Workers': [35, 25, 20, 15, 5],  
-            'Clerical Support Workers': [20, 30, 25, 20, 5],
-            'Managers & Administrators': [10, 20, 35, 25, 10],
-            'Cleaners, Labourers & Related Workers': [20, 20, 25, 25, 10]
-        }
-        
-        for occ in occupations:
-            for i, age in enumerate(age_groups):
-                sample_data.append({
-                    'occupation': occ,
-                    'age_group': age,
-                    'share_pct': patterns[occ][i]
-                })
-        
-        df_age = pd.DataFrame(sample_data)
+    if df_age is None or df_age.empty:
+        st.warning("Unable to load age group data. Please ensure Module 2 data is loaded or database connection is available.")
+        st.info("Navigate to Module 2 to load the age unemployment dataset first.")
+        return
     
-    if df_age is not None and not df_age.empty:
-        # Add occupation selector
-        occupations = sorted(df_age['occupation'].unique())
-        # Filter out 'Overall' if it exists as we have it as a separate option
-        occupations = [occ for occ in occupations if occ != 'Overall']
-        occupation_options = ["Overall (All Occupations)"] + occupations
-        
-        selected_occupation = st.selectbox(
-            "Select occupation to analyze:",
-            options=occupation_options,
-            index=0,
-            key="age_plot_occupation_selector"
-        )
-        
-        # Filter data based on selection
-        if selected_occupation == "Overall (All Occupations)":
-            display_data = df_age.copy()
-            chart_title = 'Age Group Differentials Across All Occupations'
-            x_axis = 'occupation'
-        else:
-            display_data = df_age[df_age['occupation'] == selected_occupation].copy()
-            chart_title = f'Age Group Distribution - {selected_occupation}'
-            x_axis = 'age_group'
-        
+    # Show data limitation notice
+    st.info("📊 **Data Availability:** The current dataset provides age group patterns at the overall level only. Occupation-specific age breakdowns are not available due to data structure limitations.")
+    
+    # Since we only have overall data, show the time series pattern
+    if 'year' in df_age.columns:
+        # Show time series by age group
         age_groups = sorted(df_age['age_group'].unique())
         color_map = {age: px.colors.qualitative.Bold[i % len(px.colors.qualitative.Bold)] 
                     for i, age in enumerate(age_groups)}
         
-        # Create different chart types based on selection
-        if selected_occupation == "Overall (All Occupations)":
-            fig = px.bar(
-                display_data, 
-                x=x_axis, 
-                y='share_pct', 
-                color='age_group',
-                color_discrete_map=color_map,
-                category_orders={'age_group': age_groups},
-                labels={'occupation': 'Occupation', 'share_pct': 'Share (%)', 'age_group': 'Age Group'},
-                title=chart_title,
-                height=500
-            )
-        else:
-            # For individual occupation, show age groups as separate bars
-            fig = px.bar(
-                display_data, 
-                x=x_axis, 
-                y='share_pct', 
-                color='age_group',
-                color_discrete_map=color_map,
-                category_orders={'age_group': age_groups},
-                labels={'age_group': 'Age Group', 'share_pct': 'Share (%)', 'occupation': 'Occupation'},
-                title=chart_title,
-                height=500
-            )
+        fig = px.bar(
+            df_age, 
+            x='year', 
+            y='share_pct', 
+            color='age_group',
+            color_discrete_map=color_map,
+            category_orders={'age_group': age_groups},
+            labels={'year': 'Year', 'share_pct': 'Share (%)', 'age_group': 'Age Group'},
+            title='Age Group Share of Unemployment Over Time',
+            height=500
+        )
         
         fig.update_layout(
-            barmode='stack' if selected_occupation == "Overall (All Occupations)" else 'group', 
+            barmode='stack', 
             hovermode='x unified',
             legend_title_text='Age Group',
             yaxis=dict(range=[0, 100], title='Share of unemployed (%)')
         )
         
+        # Add COVID period highlighting
+        try:
+            fig.add_vrect(
+                x0=2019.5, x1=2021.5,
+                fillcolor='rgba(255, 165, 0, 0.15)',
+                line_width=0,
+                annotation_text='COVID period',
+                annotation_position='top left',
+            )
+        except Exception:
+            pass
+        
         st.plotly_chart(fig, use_container_width=True)
         
-        # Show insights based on selection
-        if selected_occupation == "Overall (All Occupations)":
-            total_by_age = df_age.groupby('age_group')['share_pct'].sum()
-            if not total_by_age.empty:
-                dominant_age = total_by_age.idxmax()
-                st.caption(f"**Overall pattern:** {dominant_age} age group shows highest concentration across top occupations")
-            
-            st.markdown("""
-            **Key Observations:**
-            - Youth (15-24) heavily represented in Service & Sales roles
-            - Mid-career (25-44) concentrated in Professional occupations
-            - Mature workers (55-64) overrepresented in Cleaners/manual labor
-            - Age stratification varies significantly by occupation type
-            """)
-        else:
-            # Show specific insights for selected occupation
-            if not display_data.empty:
-                max_age_group = display_data.loc[display_data['share_pct'].idxmax(), 'age_group']
-                max_share = display_data['share_pct'].max()
-                min_age_group = display_data.loc[display_data['share_pct'].idxmin(), 'age_group']
-                min_share = display_data['share_pct'].min()
-                
-                st.caption(f"**{selected_occupation}:** {max_age_group} dominates at {max_share:.1f}% while {min_age_group} shows lowest representation at {min_share:.1f}%")
-                
-                # Dynamic insights based on occupation
-                if "Service" in selected_occupation or "Sales" in selected_occupation:
-                    st.info("💡 **Service & Sales roles** typically attract younger workers (15-24) seeking entry-level positions and part-time opportunities.")
-                elif "Professional" in selected_occupation or "Manager" in selected_occupation:
-                    st.info("💡 **Professional roles** concentrate in mid-career ages (25-44) due to education and experience requirements.")
-                elif "Cleaner" in selected_occupation or "Labourer" in selected_occupation:
-                    st.info("💡 **Manual labor roles** often employ older workers (45+) and those with limited alternative opportunities.")
-                elif "Clerical" in selected_occupation:
-                    st.info("💡 **Clerical positions** show mixed age distribution as they serve as both entry-level and stable long-term roles.")
-                else:
-                    st.info("💡 Age distribution reflects occupation-specific entry barriers, career progression patterns, and market dynamics.")
+        # Show latest year insights
+        try:
+            latest_year = df_age['year'].max()
+            latest_data = df_age[df_age['year'] == latest_year]
+            if not latest_data.empty:
+                dominant_age = latest_data.loc[latest_data['share_pct'].idxmax(), 'age_group']
+                dominant_pct = latest_data['share_pct'].max()
+                st.caption(f"**{int(latest_year)} pattern:** {dominant_age} age group shows highest representation at {dominant_pct:.1f}% of total unemployment.")
+        except Exception:
+            pass
     else:
-        st.warning("Unable to load age group data. Please ensure Module 2 data is loaded or database connection is available.")
-        st.info("Navigate to Module 2 to load the age unemployment dataset first.")
+        # Show current distribution only
+        age_groups = sorted(df_age['age_group'].unique())
+        color_map = {age: px.colors.qualitative.Bold[i % len(px.colors.qualitative.Bold)] 
+                    for i, age in enumerate(age_groups)}
+        
+        fig = px.bar(
+            df_age, 
+            x='age_group', 
+            y='share_pct', 
+            color='age_group',
+            color_discrete_map=color_map,
+            category_orders={'age_group': age_groups},
+            labels={'age_group': 'Age Group', 'share_pct': 'Share (%)'},
+            title='Age Group Distribution in Unemployment',
+            height=500
+        )
+        
+        fig.update_layout(
+            hovermode='x unified',
+            legend_title_text='Age Group',
+            yaxis=dict(title='Share of unemployed (%)')
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Add footer with insights
+    st.caption("**2024 age focus:** Youth unemployment (15-29) remains a key concern, emphasizing the need for early career upskilling and transition initiatives.")
+    st.caption("**Data Note:** For occupation-specific age analysis, cross-referencing with occupation tables would be needed, but such granular breakdowns are not available in the current MOM dataset structure.")
+
+
+@st.dialog("⚖️ Gender Exposure within Occupation Families", width="large")
+def show_gender_plot():
+    """Display gender exposure analysis in a modal - based on Module 3 implementation"""
+    st.markdown("### Gender exposure within occupation families")
+    st.caption("Share of unemployment by gender across top occupation families")
+    
+    # Load real data
+    gender_raw = _load_gender_data()
+    
+    if gender_raw is not None:
+        try:
+            # Prepare demographic share data using Module 3 approach
+            gender_df, gen_year, gen_occ, gen_dim, gen_count = prepare_demographic_share(
+                gender_raw, ['gender', 'sex']
+            )
+            
+            if gender_df is not None and not gender_df.empty:
+                # Get top 6 occupation families by unemployment count
+                top_gender_occupations = (
+                    gender_df.groupby(gen_occ)[gen_count]
+                    .sum()
+                    .sort_values(ascending=False)
+                    .head(6)
+                    .index
+                )
+                
+                gender_focus = gender_df[gender_df[gen_occ].isin(top_gender_occupations)].copy()
+                
+                if not gender_focus.empty:
+                    # Create stacked area chart matching Module 3 implementation
+                    fig_gender = px.area(
+                        gender_focus,
+                        x=gen_year,
+                        y='share_pct',
+                        color=gen_dim,
+                        facet_col=gen_occ,
+                        facet_col_wrap=3,
+                        category_orders={gen_dim: sorted(gender_focus[gen_dim].unique())},
+                        color_discrete_map={'Female': 'pink', 'Male': 'blue'},
+                        labels={gen_year: 'Year', 'share_pct': 'Share of unemployed (%)', gen_dim: 'Gender'},
+                        title='Gender exposure within occupation families',
+                        height=650,
+                    )
+                    
+                    # Update layout to match Module 3
+                    fig_gender.update_yaxes(matches=None, range=[0, 100])
+                    fig_gender.for_each_annotation(lambda a: a.update(text=a.text.split('=')[-1]))
+                    fig_gender.update_layout(legend_title_text='Gender', hovermode='x unified')
+                    
+                    # Add COVID period highlighting
+                    try:
+                        fig_gender.add_vrect(
+                            x0=2019.5,
+                            x1=2021.5,
+                            fillcolor='rgba(255, 165, 0, 0.15)',
+                            line_width=0,
+                            row='all',
+                            col='all',
+                        )
+                    except Exception:
+                        pass
+                    
+                    st.plotly_chart(fig_gender, use_container_width=True, key='gender_exposure_chart')
+                    
+                    # Generate summary statistics
+                    try:
+                        latest_gender_year = gender_df[gen_year].max()
+                        latest_gender = gender_df[gender_df[gen_year] == latest_gender_year]
+                        totals = latest_gender.groupby(gen_dim)[gen_count].sum()
+                        total_sum = totals.sum()
+                        
+                        if total_sum > 0:
+                            dominant_gender = totals.idxmax()
+                            dominant_pct = (totals.max() / total_sum) * 100
+                            st.markdown(
+                                f"**{latest_gender_year} gender exposure:** {dominant_gender} accounted for approximately {dominant_pct:.1f}% of unemployment across these occupation families."
+                            )
+                    except Exception:
+                        st.caption('Gender summary unavailable because the latest-year counts are incomplete.')
+                    
+                    # Add interpretation matching Module 3
+                    st.caption(
+                        'While male unemployment leads in overall volume, gender exposure varies across occupations. '
+                        'Female workers in lower-skilled roles such as clerical and service occupations remain more '
+                        'exposed to cyclical job losses, reinforcing the gendered vulnerability within Singapore\'s labour market.'
+                    )
+                else:
+                    st.info('Gender data lacks sufficient occupation-level detail for visualization.')
+            else:
+                st.info('Unable to process gender share data.')
+        except Exception as e:
+            st.error(f"Error processing gender data: {e}")
+            st.info("Please ensure the unemployment by previous occupation and sex data is available.")
+    else:
+        st.warning("Unable to load gender data. Please ensure Module 3 data is loaded or database connection is available.")
+        st.info("Navigate to Module 3 to load the gender unemployment dataset first.")
 
 
 def slide_3_2_human_capital_lens():
@@ -940,7 +1066,7 @@ def slide_3_2_human_capital_lens():
     st.markdown("---")
     
     # Add plot buttons
-    col_text, col_btn1, col_btn2 = st.columns([3, 1, 1])
+    col_text, col_btn1, col_btn2, col_btn3 = st.columns([2, 1, 1, 1])
     with col_text:
         st.markdown("""
         This lens examines how **education, gender, and age** interact with occupation groups to 
@@ -953,6 +1079,9 @@ def slide_3_2_human_capital_lens():
     with col_btn2:
         if st.button("👥 Age Groups", key="age_plot_btn", use_container_width=True):
             show_age_plot()
+    with col_btn3:
+        if st.button("⚖️ Gender", key="gender_plot_btn", use_container_width=True):
+            show_gender_plot()
     
     st.markdown("### **Education: The Protective Factor**")
     
@@ -988,7 +1117,7 @@ def slide_3_2_human_capital_lens():
                  help="Strong negative correlation: Higher education = Lower unemployment")
     
     st.markdown("---")
-    st.markdown("### **Age & Gender: Within-Occupation Variation**")
+    st.markdown("### **Age & Gender: Within-Occupation Exposure Patterns**")
     
     col1, col2 = st.columns(2)
     
@@ -998,24 +1127,27 @@ def slide_3_2_human_capital_lens():
         - **Youth (15-24):** Highest volatility, rapid recovery
         - **Prime age (25-54):** Moderate, stable patterns
         - **Mature (55-64):** Slower recovery, persistent risk
-        - **Age × Education interaction:** Mature + low education = 5-7x higher unemployment
+        - **Age x Education interaction:** Mature + low education = 5-7 times higher unemployment
         """)
     
     with col2:
-        st.markdown("#### ⚖️ **Gender Gap Dynamics**")
+        st.markdown("#### ⚖️ **Gender Exposure within Occupation Families**")
         st.markdown("""
-        - **Degree holders:** Gender parity advances (gap: 0.10% in COVID)
-        - **Diploma/Post-Secondary:** Widening gaps (2.20% during COVID)
-        - **Below Secondary:** Gap reduced from 2.40% to 0.77%
-        - Women don't lose ground when economy tightens (policy success)
+        - **Male unemployment** leads overall volume across occupation families
+        - **Female exposure** varies significantly by occupation type  
+        - **Service/Clerical roles:** Higher female vulnerability to cyclical losses
+        - **Professional positions:** More balanced gender distribution patterns
         """)
     
     st.info("""
-    💡 **Narrative:** Education is the single strongest predictor of resilience, but mid-tier 
-    credentials endure the steepest COVID spike and slower recovery—a **priority cohort for 
-    upskilling support**. Within occupations, demographics matter: mature workers with low 
-    education face 5-7x higher unemployment. Gender parity advances at degree level, but diploma 
-    programs show widening gaps—requiring employer commitments and inclusive placement targets.
+    💡 **Narrative:** Demographics reveal critical vulnerability patterns within occupations. 
+    **Education's protective power is eroding**—degree holders now represent 40.7% of unemployment, 
+    signaling structural shifts where qualifications alone no longer guarantee job security. 
+    **Age stratification intensifies risk**: youth (15-29) comprise 26.9% of unemployed, requiring 
+    early career transition support, while mature workers with low education face 5-7 times 
+    higher unemployment rates. **Gender exposure varies dramatically** across occupation families, 
+    with women in service and clerical roles experiencing heightened cyclical vulnerability—demanding 
+    targeted reskilling programs and inclusive placement strategies to address these intersecting disadvantages.
     """)
 
 

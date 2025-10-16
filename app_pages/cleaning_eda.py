@@ -741,71 +741,83 @@ def page_visualisation_module_three(engine: Optional[sqlalchemy.engine.Engine]):
     except KeyError:
         st.info('Previous occupation by gender table not available in the current data connection.')
 
-    st.markdown('#### Age group differentials within occupation families')
+    st.markdown('#### Age group differentials (overall unemployment patterns)')
     try:
         age_raw = tables.get('unemployed_by_age_sex_long') if tables else None
         if age_raw is None:
             raise KeyError('Table unavailable')
-        age_df, age_year, age_occ, age_dim, age_count = prepare_demographic_share(age_raw, ['age_group', 'ageband', 'age bracket', 'age'], collapse_gender=True)
-        if len(age_df[age_occ].unique()) == 1:
-            top_age_occupations = age_df[age_occ].unique()
+        
+        # Note: This table only has age_group data without occupation breakdown
+        # Process data for overall age patterns
+        age_col = _find_column(age_raw, ['age_group', 'ageband', 'age bracket', 'age'])
+        count_col = _find_column(age_raw, ['unemployed_count', 'unemployment_count', 'unemp_count'])
+        year_col = _find_column(age_raw, ['year'])
+        gender_col = _find_column(age_raw, ['gender', 'sex'])
+        
+        if not all([age_col, count_col, year_col]):
+            st.info('Age table lacks required columns for analysis.')
         else:
-            top_age_occupations = (
-                age_df.groupby(age_occ)[age_count]
-                .sum()
-                .sort_values(ascending=False)
-                .head(6)
-                .index
-            )
-        age_focus = age_df[age_df[age_occ].isin(top_age_occupations)].copy()
-        if age_focus.empty:
-            st.info('Age table lacks sufficient occupation-level detail for plotting.')
-        else:
-            age_focus[age_year] = age_focus[age_year].round().astype(int)
-            age_groups = sorted(age_focus[age_dim].unique())
-            color_map = {age: px.colors.qualitative.Bold[i % len(px.colors.qualitative.Bold)] for i, age in enumerate(age_groups)}
-            fig_age = px.bar(
-                age_focus,
-                x=age_year,
-                y='share_pct',
-                color=age_dim,
-                facet_col=age_occ,
-                facet_col_wrap=3,
-                category_orders={age_dim: age_groups},
-                color_discrete_map=color_map,
-                labels={age_year: 'Year', 'share_pct': 'Share of unemployed (%)', age_dim: 'Age group'},
-                title='Age group share of unemployment within top occupations',
-                height=650,
-            )
-            fig_age.update_layout(barnorm='percent', hovermode='x unified', legend_title_text='Age group')
-            fig_age.update_yaxes(matches=None, range=[0, 100], title='Share of unemployed (%)')
-            fig_age.for_each_annotation(lambda a: a.update(text=a.text.split('=')[-1]))
-            try:
-                fig_age.add_vrect(
-                    x0=2019.5,
-                    x1=2021.5,
-                    fillcolor='rgba(255, 165, 0, 0.15)',
-                    line_width=0,
-                    row='all',
-                    col='all',
+            # Collapse gender to get overall age patterns
+            if gender_col:
+                age_summary = age_raw.groupby([year_col, age_col])[count_col].sum().reset_index()
+            else:
+                age_summary = age_raw[[year_col, age_col, count_col]].copy()
+            
+            # Convert year to numeric
+            if pd.api.types.is_datetime64_any_dtype(age_summary[year_col]):
+                age_summary[year_col] = age_summary[year_col].dt.year
+            
+            # Calculate share percentages by year
+            age_summary['total_by_year'] = age_summary.groupby(year_col)[count_col].transform('sum')
+            age_summary = age_summary[age_summary['total_by_year'] > 0].copy()
+            age_summary['share_pct'] = (age_summary[count_col] / age_summary['total_by_year']) * 100
+            
+            if not age_summary.empty:
+                age_summary[year_col] = age_summary[year_col].round().astype(int)
+                age_groups = sorted(age_summary[age_col].unique())
+                color_map = {age: px.colors.qualitative.Bold[i % len(px.colors.qualitative.Bold)] for i, age in enumerate(age_groups)}
+                
+                fig_age = px.bar(
+                    age_summary,
+                    x=year_col,
+                    y='share_pct',
+                    color=age_col,
+                    category_orders={age_col: age_groups},
+                    color_discrete_map=color_map,
+                    labels={year_col: 'Year', 'share_pct': 'Share of unemployed (%)', age_col: 'Age group'},
+                    title='Age group share of unemployment over time (overall patterns)',
+                    height=650,
                 )
-            except Exception:
-                pass
-            utils.render_plotly_chart(fig_age, key='module3_age_facets')
-            try:
-                latest_age_year = age_df[age_year].max()
-                latest_age = age_df[age_df[age_year] == latest_age_year]
-                age_totals = latest_age.groupby(age_dim)[age_count].sum()
-                age_total_sum = age_totals.sum()
-                if age_total_sum > 0:
-                    dominant_age = age_totals.idxmax()
-                    dominant_age_pct = (age_totals.max() / age_total_sum) * 100
-                    st.markdown(
-                        f"*{int(latest_age_year)} age focus:* **{dominant_age}** made up about {dominant_age_pct:.1f}% of unemployed jobseekers in the highlighted occupations."
+                fig_age.update_layout(barnorm='percent', hovermode='x unified', legend_title_text='Age group')
+                fig_age.update_yaxes(range=[0, 100], title='Share of unemployed (%)')
+                try:
+                    fig_age.add_vrect(
+                        x0=2019.5,
+                        x1=2021.5,
+                        fillcolor='rgba(255, 165, 0, 0.15)',
+                        line_width=0,
                     )
-            except Exception:
-                st.caption('Age profile summary unavailable because the latest-year counts are incomplete.')
-            st.caption('Persistent youth unemployment reinforces the need for early career upskilling and transition initiatives that support integration into stable occupations.')
+                except Exception:
+                    pass
+                utils.render_plotly_chart(fig_age, key='module3_age_overall')
+                
+                # Summary for latest year
+                try:
+                    latest_age_year = age_summary[year_col].max()
+                    latest_age = age_summary[age_summary[year_col] == latest_age_year]
+                    if not latest_age.empty:
+                        dominant_age = latest_age.loc[latest_age['share_pct'].idxmax(), age_col]
+                        dominant_age_pct = latest_age['share_pct'].max()
+                        st.markdown(
+                            f"*{int(latest_age_year)} age focus:* **{dominant_age}** made up about {dominant_age_pct:.1f}% of unemployed jobseekers."
+                        )
+                except Exception:
+                    st.caption('Age profile summary unavailable due to data processing issues.')
+                
+                st.caption('Note: Age data is available at the overall level only. Occupation-specific age breakdowns are not available in the current dataset structure.')
+                st.caption('Persistent youth unemployment reinforces the need for early career upskilling and transition initiatives that support integration into stable occupations.')
+            else:
+                st.info('Age table lacks sufficient data for plotting.')
     except KeyError:
         st.info('Age-based unemployment table not available in the current data connection.')
 
