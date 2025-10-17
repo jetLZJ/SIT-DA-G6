@@ -72,7 +72,7 @@ def slide_1_2_powerbi_dashboard():
     with col2:
         st.markdown("""
         - Demographic filters
-        - Geographic/sector views
+        - Education/qualification levels
         """)
     
     st.info("💡 **Narrative:** Before we dive deep, take a moment to explore the data yourself. This dashboard aggregates 11 years of Ministry of Manpower data—over 500,000 data points covering 8 major occupation groups, demographic splits, and qualification levels. Every insight we share today is grounded in this evidence base.")
@@ -318,10 +318,10 @@ def slide_2_2_pipeline_architecture():
     
     with col1:
         st.markdown("**Completeness** ℹ️")
-        st.markdown("# **98%+**")
+        st.markdown("# **100%**")
     
     with col2:
-        st.markdown("**Outliers** ℹ️")
+        st.markdown("**Outliers (1.5×IQR)** ℹ️")
         st.markdown("# **0 Critical**")
     
     with col3:
@@ -2199,14 +2199,6 @@ def slide_5_1_journey_summary_and_qa():
     
     st.markdown("""
     ### **Now we open the floor for your questions and discussion.**
-    
-    **Some areas you might want to explore:**
-    - Implementation challenges and solutions
-    - Data methodology and reliability
-    - Budget considerations and approval process
-    - Industry partnerships and stakeholder buy-in
-    - Timeline feasibility and risk factors
-    - Alternative approaches or recommendations
     """)
     
     # Interactive Q&A prompt
@@ -2219,13 +2211,7 @@ def slide_5_1_journey_summary_and_qa():
         <div style='text-align: center; padding: 30px; border: 2px dashed #1f77b4; border-radius: 10px; background-color: #f0f8ff;'>
         <h3>🎤 Your Questions Welcome</h3>
         <p style='font-size: 1.2em; margin-bottom: 20px;'>
-        What aspects of our unemployment analysis and strategy would you like to discuss?
-        </p>
-        <p style='font-style: italic; color: #666;'>
-        → Implementation details<br/>
-        → Data methodology<br/>
-        → Strategic alternatives<br/>
-        → Next steps
+
         </p>
         </div>
         """, unsafe_allow_html=True)

@@ -105,6 +105,15 @@ def render_presentation_controls():
     """Render the presentation navigation controls - compact version"""
     progress = get_slide_progress()
     
+    # Add CSS to style progress bar to black
+    st.markdown("""
+    <style>
+    .stProgress > div > div > div > div {
+        background-color: black;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Compact divider
     st.markdown("<div style='margin: 10px 0 8px 0; border-top: 1px solid rgba(128, 128, 128, 0.3);'></div>", unsafe_allow_html=True)
     
