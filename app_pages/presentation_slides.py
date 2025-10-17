@@ -1,4 +1,4 @@
-"""
+﻿"""
 Presentation Mode Slide Renderer
 Handles the rendering of individual slides for presentation mode.
 """
@@ -117,7 +117,7 @@ def slide_1_4_analytic_strategy():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("### �️ **ACT II: PREPARATION**")
+        st.markdown("### 🎯️ **ACT II: PREPARATION**")
         st.markdown("""
         **The Foundation**
         - Data sourcing & SQL transformation
@@ -128,7 +128,7 @@ def slide_1_4_analytic_strategy():
         """)
     
     with col2:
-        st.markdown("### � **ACT III: ANALYSIS**")
+        st.markdown("### 🎯 **ACT III: ANALYSIS**")
         st.markdown("""
         **Three-Lens Investigation**
         - **Trend Lens:** Time patterns & COVID impact
@@ -1544,7 +1544,7 @@ def slide_4_1_predictive_modeling():
         st.markdown("**Purpose:** Point Forecasts")
         st.markdown("""
         **Method:**
-        - Finds 5 most similar historical year-occupation patterns
+        - Finds K most similar historical year-occupation patterns ( in this case 3)
         - Averages their unemployment rates
         - Predicts exact 2025 rate per occupation
         
@@ -1563,7 +1563,7 @@ def slide_4_1_predictive_modeling():
         st.markdown("**Purpose:** Risk Probabilities")
         st.markdown("""
         **Method:**
-        - Logistic function on 50+ engineered features
+        - Logistic function on comprehensive engineered features
         - Estimates probability of unemployment increase
         - Binary classification with calibrated outputs
         
@@ -1578,24 +1578,24 @@ def slide_4_1_predictive_modeling():
         st.success("✅ **Strength:** Risk quantification")
     
     st.markdown("---")
-    st.markdown("## **Feature Engineering: 50+ Predictive Signals**")
+    st.markdown("## **Feature Engineering: Comprehensive Predictive Signals**")
     
     import pandas as pd
     features = pd.DataFrame({
         'Feature Type': ['Temporal', 'Demographic', 'Qualification', 'Occupational', 'Lag Features'],
         'Examples': [
-            'Rolling 3yr avg, year trends',
+            'Year-level indicators, time alignment',
             'Age 50-64 %, gender composition',
             'Degree %, secondary & below %',
-            'PMET flag, one-hot encoding',
-            'Unemployment rate (t-1), (t-2)'
+            'PMET shares, one-hot encoding',
+            'Unemployment rate (t-1), current rate'
         ],
         'Why It Matters': [
-            'Past predicts future',
+            'Time structure for forecasting',
             'Mature workers = higher risk',
             'Education gap = unemployment gap',
             'Service/manual roles vulnerable',
-            'Strongest predictor (+0.82 corr)'
+            'Strongest predictor (historical patterns)'
         ]
     })
     st.dataframe(features, use_container_width=True, hide_index=True)
@@ -1606,16 +1606,16 @@ def slide_4_1_predictive_modeling():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Training Data", "800+ observations", "2014-2022 (9 years)")
-        st.caption("Year × Occupation pairs with 50+ features each")
+        st.metric("Training Data", "Historical observations", "2014-2022 (9 years)")
+        st.caption("Year × Occupation pairs with engineered features")
     
     with col2:
-        st.metric("Validation Data", "2023 hold-out", "Test before deploy")
-        st.caption("Models proved accurate on unseen data")
+        st.metric("Validation Data", "2023 hold-out", "Time series split")
+        st.caption("Models validated on unseen temporal data")
     
     with col3:
         st.metric("2025 Forecast", "2024 features", "Carried forward")
-        st.caption("Scaffold built from latest year patterns")
+        st.caption("Latest year patterns projected forward")
 
 
 def slide_4_2_2025_forecasts():
@@ -1707,16 +1707,52 @@ def slide_4_2_2025_forecasts():
             'Model Agreement': ['✅ Near-certain', '✅ Near-certain', '✅ Near-certain', '⚠️ High risk', '⚠️ High risk', '⚠️ High risk', '⚠️ High risk', '✅ Low risk']
         })
     
-    # Highlight top 3 risks
-    st.markdown("### **🚨 Top 3 Consensus: Near-Certain Increases (99%+ Probability)**")
-    st.dataframe(
-        forecasts.head(3),
-        use_container_width=True,
-        hide_index=True
-    )
-    
     st.markdown("### **📊 Full Occupation Forecast Table**")
-    st.dataframe(forecasts, use_container_width=True, hide_index=True)
+    
+    # Create a styled dataframe with highlighting
+    import pandas as pd
+    
+    def highlight_forecast_table(df):
+        """Apply highlighting to the forecast table"""
+        # Create a dataframe with same shape for styling
+        styled_df = pd.DataFrame('', index=df.index, columns=df.columns)
+        
+        # Top 3 consensus groups (99%+ risk probability) - Yellow highlighting
+        top_3_occupations = ['Service & Sales Workers', 'Cleaners, Labourers & Related Workers', 'Craftsmen & Related Trades Workers']
+        
+        # Groups that buck recovery (increasing forecasts) - Orange highlighting  
+        buck_recovery_occupations = ['Cleaners, Labourers & Related Workers', 'Clerical Support Workers']
+        
+        for idx, row in df.iterrows():
+            occupation = row['Occupation']
+            
+            # Highlight top 3 consensus in yellow
+            if occupation in top_3_occupations:
+                styled_df.iloc[idx] = 'background-color: #fff2cc; border: 2px solid #d6b656;'
+            
+            # Highlight buck recovery groups in orange (override top 3 for cleaners)
+            if occupation in buck_recovery_occupations:
+                styled_df.iloc[idx] = 'background-color: #fce5cd; border: 2px solid #e69138;'
+            
+            # Color code the forecast change column
+            change_value = row['Change']
+            if '+' in change_value:  # Increasing forecast - red
+                styled_df.at[idx, 'Change'] = 'background-color: #f4cccc; color: #cc0000; font-weight: bold;'
+            elif '-' in change_value:  # Decreasing forecast - green  
+                styled_df.at[idx, 'Change'] = 'background-color: #d9ead3; color: #006100; font-weight: bold;'
+                
+        return styled_df
+    
+    # Apply styling and display
+    styled_forecasts = forecasts.style.apply(lambda x: highlight_forecast_table(forecasts), axis=None)
+    st.dataframe(styled_forecasts, use_container_width=True, hide_index=True)
+    
+    # Add legend
+    st.markdown("""
+    **Legend:**  
+    🟡 **Top 3 Consensus** (99%+ Risk Probability) | 🟠 **Buck Recovery Trend** (Increase Despite General Recovery)  
+    🟢 **Decreasing Forecast** | 🔴 **Increasing Forecast**
+    """)
     
     st.markdown("---")
     st.markdown("## **Key Insights**")
@@ -1735,7 +1771,7 @@ def slide_4_2_2025_forecasts():
         """)
     
     with col2:
-        st.markdown("#### � **Model Performance**")
+        st.markdown("#### 🎯 **Model Performance**")
         st.markdown("""
         **KNN Regression:**
         - MAE: **0.34pp** (2023 validation)
@@ -1758,8 +1794,6 @@ def slide_4_2_2025_forecasts():
         """)
     
     st.markdown("---")
-    st.markdown("### **What Convergence Means**")
-    
     st.success("""
     ### 💡 **Critical Insight: The Paradox of Recovery vs. Risk**
     2024 saw elevated unemployment across most occupations (Service & Sales hit **5.20%**). KNN forecasts 
@@ -1783,95 +1817,115 @@ def slide_4_3_strategic_recommendations():
     
     st.markdown("## **The Playbook: Four Strategic Priorities**")
     
-    # Priority 1
-    st.markdown("### 🎯 **Priority 1: Resilience-Building During Recovery (Q1 2025)**")
+    # Create 2x2 grid layout
+    row1_col1, row1_col2 = st.columns(2)
+    row2_col1, row2_col2 = st.columns(2)
     
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.markdown("""
-        **Target Population:**
-        - **800,000 workers** in Service & Sales, Cleaners, Craftsmen
-        - Focus on age 40-64 + secondary education & below
-        - High structural vulnerability (99%+ risk) despite forecasted recovery
+    # Top Left: Priority 1 - Resilience Building
+    with row1_col1:
+        st.markdown('<div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff6b6b;">', unsafe_allow_html=True)
+        st.markdown("### <span style='color: #2c3e50; font-weight: bold;'>🎯 Priority 1: Resilience-Building</span>", unsafe_allow_html=True)
+        st.markdown("*Q1 2025*")
         
-        **Action Items:**
-        1. ✅ **Digital literacy bootcamps** (e-commerce, automation tools)
-        2. ✅ **Service sector adaptation** (self-service tech, customer analytics)
-        3. ✅ **Trades modernization** (IoT, modular construction, robotics)
-        4. ✅ **Accelerated certification** (6-month fast-track programs)
-        """)
-    
-    with col2:
-        st.metric("Budget", "S\\$50M")
-        st.metric("Expected Impact", "60% risk reduction")
-        st.metric("ROI", "6:1")
-        st.caption("Every dollar invested saves six in unemployment costs")
-    
-    st.markdown("---")
-    
-    # Priority 2
-    st.markdown("### 📡 **Priority 2: Early Warning System (Q2-Q3 2025)**")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
         st.markdown("""
-        **Goal:** Real-time occupation risk monitoring
+        **Target:** 800,000 high-risk workers
         
-        **System Components:**
-        1. ✅ **Quarterly model refresh** (latest MOM data integration)
-        2. ✅ **Employer sentiment tracking** (hiring freeze signals)
-        3. ✅ **Skills demand analysis** (job posting trends)
-        4. ✅ **Automated alert system** (emerging risks flagged)
-        5. ✅ **Dashboard for policymakers** (live risk indicators)
+        **Key Actions:**
+        - Digital literacy bootcamps
+        - Service sector adaptation
+        - Trades modernization
+        - Fast-track certification
         """)
+        
+        # Metrics in container
+        st.markdown('<div style="background-color: white; padding: 15px; border-radius: 8px; margin-top: 10px;">', unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Budget", "S$50M")
+        with col_b:
+            st.metric("Impact", "60% risk reduction")
+        st.caption("ROI: 6:1")
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        st.metric("Budget", "S\\$5M")
-        st.metric("Lead Time Gain", "12+ months")
-        st.caption("Catch next crisis before it materializes")
-    
-    st.markdown("---")
-    
-    # Priority 3
-    st.markdown("### 💼 **Priority 3: Targeted Placement Support (Q4 2025+)**")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
+    # Top Right: Priority 2 - Early Warning System
+    with row1_col2:
+        st.markdown('<div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #4ecdc4;">', unsafe_allow_html=True)
+        st.markdown("### <span style='color: #2c3e50; font-weight: bold;'>📡 Priority 2: Early Warning System</span>", unsafe_allow_html=True)
+        st.markdown("*Q2-Q3 2025*")
+        
         st.markdown("""
-        **Target:** Displaced workers from high-risk occupations
+        **Goal:** Real-time risk monitoring
         
-        **Support Mechanisms:**
-        1. ✅ **Industry partnerships** (guaranteed interview programs)
-        2. ✅ **Subsidized hiring** (wage offset for 6 months)
-        3. ✅ **Career counseling** (1-on-1 transition guidance)
-        4. ✅ **Job matching platform** (AI-powered skills alignment)
-        5. ✅ **Geographic mobility support** (relocation assistance)
+        **Key Components:**
+        - Quarterly model refresh
+        - Employer sentiment tracking
+        - Automated alert system
+        - Live risk dashboard
         """)
+        
+        # Metrics in container
+        st.markdown('<div style="background-color: white; padding: 15px; border-radius: 8px; margin-top: 10px;">', unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Budget", "S$5M")
+        with col_b:
+            st.metric("Lead Time", "12+ months")
+        st.caption("Prevent next crisis")
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        st.metric("Budget", "S\\$30M")
-        st.metric("Placement Target", "75%")
-        st.caption("Within 6 months of program entry")
+    # Bottom Left: Priority 3 - Placement Support (MOVED HERE)
+    with row2_col1:
+        st.markdown('<div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #45b7d1;">', unsafe_allow_html=True)
+        st.markdown("### <span style='color: #2c3e50; font-weight: bold;'>💼 Priority 3: Placement Support</span>", unsafe_allow_html=True)
+        st.markdown("*Q4 2025+*")
+        
+        st.markdown("""
+        **Target:** Displaced workers
+        
+        **Key Mechanisms:**
+        - Industry partnerships
+        - Subsidized hiring
+        - AI job matching
+        """)
+        
+        # Metrics in container
+        st.markdown('<div style="background-color: white; padding: 15px; border-radius: 8px; margin-top: 10px;">', unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Budget", "S$30M")
+        with col_b:
+            st.metric("Target", "75% placement")
+        st.caption("Within 6 months")
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown("---")
-    
-    # Priority 4
-    st.markdown("### 📚 **Priority 4: Curriculum Redesign (2025-2026)**")
-    
-    st.markdown("""
-    **Goal:** Align education with future labour market needs
-    
-    **Focus Areas:**
-    - **ITE/Polytechnics:** Add automation-complementary modules (robotics, data literacy, digital tools)
-    - **Universities:** Integrate industry practicums (paid internships in growth sectors)
-    - **SkillsFuture:** Expand micro-credentials in high-demand skills (cloud computing, analytics, green tech)
-    
-    **Budget:** Integrated into existing education funding  
-    **Timeline:** 18-month implementation cycle
-    """)
+    # Bottom Right: Priority 4 - Curriculum Redesign (MOVED HERE)
+    with row2_col2:
+        st.markdown('<div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #96ceb4;">', unsafe_allow_html=True)
+        st.markdown("### <span style='color: #2c3e50; font-weight: bold;'>📚 Priority 4: Curriculum Redesign</span>", unsafe_allow_html=True)
+        st.markdown("*2025-2026*")
+        
+        st.markdown("""
+        **Goal:** Future-ready education
+        
+        **Focus Areas:**
+        - ITE/Poly: Automation modules
+        - Universities: Industry practicums
+        - SkillsFuture: Micro-credentials
+        """)
+        
+        # Metrics in container
+        st.markdown('<div style="background-color: white; padding: 15px; border-radius: 8px; margin-top: 10px;">', unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Budget", "Existing")
+        with col_b:
+            st.metric("Timeline", "18 months")
+        st.caption("System-wide impact")
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown("## **Integrated Impact: The Full Picture**")
@@ -1879,14 +1933,14 @@ def slide_4_3_strategic_recommendations():
     import pandas as pd
     impact_summary = pd.DataFrame({
         'Priority': ['Immediate Reskilling', 'Early Warning System', 'Placement Support', 'Curriculum Redesign', '**TOTAL**'],
-        'Investment': ['S\\$50M', 'S\\$5M', 'S\\$30M', 'Existing budget', '**S\\$85M**'],
+        'Investment': ['S$50M', 'S$5M', 'S$30M', 'Existing budget', '**S$85M**'],
         'Population Reached': ['800,000', 'System-wide', '120,000', 'Future cohorts', '**920,000+**'],
         'Expected Outcome': [
             '60% risk reduction',
             '12+ month foresight',
             '75% placement rate',
             'Future-ready grads',
-            '**S\\$500M+ value**'
+            '**S$500M+ value**'
         ],
         'Timeline': ['Q1-Q2 2025', 'Q2-Q3 2025', 'Q4 2025+', '2025-2026', '**12-24 months**']
     })
@@ -1899,7 +1953,7 @@ def slide_4_3_strategic_recommendations():
     ### 💡 **Investment vs. Complacency**
     
     **Proactive Path (Recommended):**
-    - **S\\$85M investment** in Q1-Q2 2025
+    - **S$85M investment** in Q1-Q2 2025
     - Build resilience during recovery phase
     - **6:1 ROI** when next shock hits (fortification is cheaper than crisis response)
     - 800,000+ vulnerable workers stabilized
@@ -1907,10 +1961,10 @@ def slide_4_3_strategic_recommendations():
     **Complacent Path (Default if we trust recovery alone):**
     - Assume recovery = stability
     - No resilience buffers built
-    - **S\\$500M+ crisis spending** when next disruption hits unprepared groups
+    - **S$500M+ crisis spending** when next disruption hits unprepared groups
     - Prolonged, deeper unemployment cycle
     
-    ### **The choice: Invest S\\$85M to fortify during recovery, or gamble that recovery lasts.**
+    ### **The choice: Invest S$85M to fortify during recovery, or gamble that recovery lasts.**
     """)
 
 
@@ -2050,60 +2104,151 @@ def slide_5_1_journey_summary_and_qa():
     st.markdown("---")
     
     # Key insights from the journey
-    st.markdown("## **� What We Learned**")
+    st.markdown("## **🎯 What We Learned**")
     
-    col1, col2 = st.columns(2)
+    # Big Metrics Section with infographics
+    st.markdown("### **📊 Key Discoveries**")
+    
+    # Row 1: Impact Metrics - Enhanced with Acts 2&3 Key Discoveries
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("### **📊 Data Insights**")
         st.markdown("""
-        ✅ **Service & Sales Workers**: 7.05% peak unemployment (COVID)  
-        ✅ **Clerical Support**: Persistent 5.47% vs 2.57% for Professionals  
-        ✅ **Youth (15-29)**: 26.9% of unemployed population  
-        ✅ **Education erosion**: Degree holders now 40.7% of unemployed  
-        ✅ **Predictable patterns**: KNN achieves 90%+ accuracy  
-        """)
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #ff6b6b, #ff8e8e); border-radius: 15px; color: white; margin-bottom: 10px;'>
+        <div style='font-size: 3em; margin-bottom: 10px;'>🎯</div>
+        <div style='font-size: 2.5em; font-weight: bold;'>7.15%</div>
+        <div style='font-size: 1.2em;'>COVID Peak</div>
+        <div style='font-size: 0.9em; opacity: 0.9;'>Clerical (+1.82pp)</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("### **🎯 Strategic Actions**")
         st.markdown("""
-        🎓 **Targeted reskilling** for 15,000 vulnerable workers  
-        👥 **Youth integration** programs for 8,500 placements  
-        📊 **Data enhancement** for precision targeting  
-        🔄 **Adaptive monitoring** with quarterly updates  
-        💰 **3.8:1 ROI** through proactive intervention  
-        """)
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #4ecdc4, #44a08d); border-radius: 15px; color: white; margin-bottom: 10px;'>
+        <div style='font-size: 3em; margin-bottom: 10px;'>⚖️</div>
+        <div style='font-size: 2.5em; font-weight: bold;'>4.3x</div>
+        <div style='font-size: 1.2em;'>Occupation Gap</div>
+        <div style='font-size: 0.9em; opacity: 0.9;'>Cleaners vs Managers</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #feca57, #ff9ff3); border-radius: 15px; color: white; margin-bottom: 10px;'>
+        <div style='font-size: 3em; margin-bottom: 10px;'>🎓</div>
+        <div style='font-size: 2.5em; font-weight: bold;'>40.7%</div>
+        <div style='font-size: 1.2em;'>Degree Holders</div>
+        <div style='font-size: 0.9em; opacity: 0.9;'>Share of Unemployment</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #a55eea, #26de81); border-radius: 15px; color: white; margin-bottom: 10px;'>
+        <div style='font-size: 3em; margin-bottom: 10px;'>📊</div>
+        <div style='font-size: 2.5em; font-weight: bold;'>0.82</div>
+        <div style='font-size: 1.2em;'>Predictability</div>
+        <div style='font-size: 0.9em; opacity: 0.9;'>Past→Future Correlation</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Row 2: Action Metrics
+    st.markdown("### **🚀 Strategic Actions**")
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #3742fa, #2f3542); border-radius: 15px; color: white;'>
+        <div style='font-size: 2.5em; margin-bottom: 10px;'>🎯</div>
+        <div style='font-size: 2em; font-weight: bold;'>800,000</div>
+        <div style='font-size: 1em;'>Workers Targeted</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #ff3838, #ff6b6b); border-radius: 15px; color: white;'>
+        <div style='font-size: 2.5em; margin-bottom: 10px;'>👥</div>
+        <div style='font-size: 2em; font-weight: bold;'>120,000</div>
+        <div style='font-size: 1em;'>Population Reached</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #2ed573, #7bed9f); border-radius: 15px; color: white;'>
+        <div style='font-size: 2.5em; margin-bottom: 10px;'>📊</div>
+        <div style='font-size: 2em; font-weight: bold;'>S$85M</div>
+        <div style='font-size: 1em;'>Investment</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #ffa502, #ff6348); border-radius: 15px; color: white;'>
+        <div style='font-size: 2.5em; margin-bottom: 10px;'>💰</div>
+        <div style='font-size: 2em; font-weight: bold;'>6:1</div>
+        <div style='font-size: 1em;'>ROI Return</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col5:
+        st.markdown("""
+        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #5f27cd, #341f97); border-radius: 15px; color: white;'>
+        <div style='font-size: 2.5em; margin-bottom: 10px;'>📅</div>
+        <div style='font-size: 2em; font-weight: bold;'>12</div>
+        <div style='font-size: 1em;'>Month Window</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
     # The transformation
     st.markdown("## **🚀 The Transformation**")
-    
+
+    # Big Before/After Metrics
     col_before, col_arrow, col_after = st.columns([3, 1, 3])
-    
+
     with col_before:
-        st.markdown("### **❌ Before**")
         st.markdown("""
-        - Reactive unemployment response
-        - Broad, unfocused programs
-        - Limited data integration
-        - Crisis-driven decisions
-        - Unclear ROI measurement
-        """)
-    
+        <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 20px; color: white;'>
+        <div style='font-size: 4em; margin-bottom: 15px;'>❌</div>
+        <div style='font-size: 1.8em; font-weight: bold; margin-bottom: 15px;'>BEFORE</div>
+        <div style='font-size: 1.1em; line-height: 1.6;'>
+        • Reactive unemployment response<br>
+        • Broad, unfocused programs<br>
+        • Limited data integration<br>
+        • Crisis-driven decisions<br>
+        • Unclear ROI measurement
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     with col_arrow:
-        st.markdown("### **→**")
-        st.markdown("<div style='text-align: center; font-size: 4em;'>🔄</div>", unsafe_allow_html=True)
-    
-    with col_after:
-        st.markdown("### **✅ After**")
         st.markdown("""
-        - Predictive intervention strategy
-        - Precision-targeted programs
-        - Integrated data analytics
-        - Evidence-driven policy
-        - Measurable economic impact
-        """)
+        <div style='text-align: center; padding: 40px 0;'>
+        <div style='font-size: 4em; color: #3498db;'>🔄</div>
+        <div style='font-size: 1.2em; color: #3498db; font-weight: bold;'>TRANSFORM</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_after:
+        st.markdown("""
+        <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #27ae60, #16a085); border-radius: 20px; color: white;'>
+        <div style='font-size: 4em; margin-bottom: 15px;'>✅</div>
+        <div style='font-size: 1.8em; font-weight: bold; margin-bottom: 15px;'>AFTER</div>
+        <div style='font-size: 1.1em; line-height: 1.6;'>
+        • Predictive intervention strategy<br>
+        • Precision-targeted programs<br>
+        • Integrated data analytics<br>
+        • Evidence-driven policy<br>
+        • Measurable economic impact
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -2175,3 +2320,4 @@ def render_slide(act: int, slide: int, engine: Optional[sqlalchemy.engine.Engine
         slide_func()
     else:
         st.error(f"Slide {act}.{slide} not yet implemented")
+
