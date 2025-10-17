@@ -305,7 +305,6 @@ def slide_2_2_pipeline_architecture():
         st.dataframe(outlier_stats, use_container_width=True, hide_index=True)
         
         st.markdown("**Outlier Detection**")
-        st.write("• Z-score method applied")
         st.write("• Interquartile range analysis")
         st.write("• Flagged extreme values")
     
@@ -370,7 +369,7 @@ def slide_2_3_master_dataset():
     with col1:
         st.metric("Highest COVID Spike", "Clerical: 7.15%", delta="+1.82pp", delta_color="inverse")
     with col2:
-        st.metric("Most Persistent Risk", "Service & Sales", help="Elevated even post-COVID")
+        st.metric("Most Persistent Risk", "Clerical Support Workers", help="Elevated even post-COVID")
     with col3:
         st.metric("Fastest Recovery", "Managers: 2.23%", delta="-0.57pp", delta_color="normal")
     
@@ -1505,7 +1504,7 @@ def slide_4_1_predictive_modeling():
         - Predicts exact 2025 rate per occupation
         
         **Output Example:**
-        - "Service & Sales will hit **4.9%** in 2025"
+        - "Service & Sales will hit **2.87%** in 2025"
         
         **Validation (2023 Hold-Out):**
         - MAE: **0.34pp** ← "Wrong by <0.4pp on average"
@@ -1575,7 +1574,7 @@ def slide_4_1_predictive_modeling():
     
     st.info("""
     💡 **Narrative:** Analysis told us **who** and **why**. Prediction tells us **what happens next**. 
-    We built two models: **KNN** gives exact forecasts ('Service & Sales = 4.9% in 2025'), **Logistic** 
+    We built two models: **KNN** gives exact forecasts ('Service & Sales = 2.87% in 2025'), **Logistic** 
     gives probabilities ('99.9% chance of increase'). Both trained on 11 years of historical patterns (2014-2024), both 
     validated on held-out 2023 data—meaning we **already proved they work**. We engineered 50+ features 
     encoding everything we learned: past unemployment, demographics, education, occupation structure. 
@@ -1750,107 +1749,7 @@ def slide_4_2_2025_forecasts():
     """)
 
 
-def slide_4_3_intervention_window():
-    """Slide 4.3: The 12-Month Intervention Window"""
-    st.markdown("# The 12-Month Window")
-    st.markdown("### Act Now or Pay Later")
-    
-    st.markdown("---")
-    
-    st.markdown("## **Why Timing Is Everything**")
-    
-    st.markdown("""
-    ### **We Are Here: Q4 2024 → Q4 2025**
-    - Models finalized with 2014-2024 data ✅
-    - 2025 forecasts locked ✅
-    - **12-month intervention window** before impacts materialize ⏰
-    """)
-    
-    st.markdown("---")
-    st.markdown("## **Intervention Economics: Cost vs. Timing**")
-    
-    import pandas as pd
-    intervention_table = pd.DataFrame({
-        'Action Timing': ['Q1 2025 (Now)', 'Q2 2025', 'Q3-Q4 2025', 'Post-2025'],
-        'Intervention Type': ['Proactive prevention', 'Reactive mitigation', 'Crisis management', 'Recovery/support'],
-        'Effectiveness': ['100%', '~70%', '~40%', '<20%'],
-        'Cost Multiplier': ['1.0x (baseline)', '2.0x', '4.0x', '6.0x+'],
-        'Outcome': ['Best case', 'Suboptimal', 'Poor', 'Worst case']
-    })
-    st.dataframe(intervention_table, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    st.markdown("## **Program Lead Times: Why 12 Months Matters**")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### ⏱️ **Reskilling Timeline**")
-        st.markdown("""
-        **Typical program durations:**
-        - Digital literacy bootcamps: **6 months**
-        - Technical certification: **12-18 months**
-        - Industry transition programs: **9-12 months**
-        - Job search + placement: **3-6 months**
-        
-        **Total transition time:** **9-24 months** from start to employment
-        """)
-        
-        st.error("""
-        ⚠️ **Critical Insight:**  
-        **If we delay to Q3 2025, workers won't finish reskilling before unemployment hits!**
-        """)
-    
-    with col2:
-        st.markdown("### 💰 **Cost of Inaction**")
-        st.markdown("""
-        **Proactive (Q1 2025):**
-        - Investment: **S\\$85M**
-        - Prevention value: **S\\$500M+**
-        - ROI: **6:1** (Every dollar saves six)
-        
-        **Reactive (Q4 2025+):**
-        - Crisis spending: **S\\$500M+**
-        - Limited prevention
-        - ROI: **Negative** (Paying more for less)
-        """)
-        
-        st.success("""
-        ✅ **The Math:**  
-        Act now = **25x better outcome** than waiting
-        """)
-    
-    st.markdown("---")
-    st.markdown("## **The 12-Month Gift**")
-    
-    st.warning("""
-    ### 🎁 **A Rare Opportunity**
-    
-    Most labour shocks give **zero warning**. Financial crises hit overnight. Pandemics appear suddenly. 
-    Technological disruptions emerge without telegraphing.
-    
-    **But this time, we have mathematical foresight:** 99%+ structural vulnerability scores, broad recovery 
-    predictions tempered by high-risk outliers, 12 months to build **resilience during the recovery phase**.
-    
-    ### **Use it or lose it.**
-    
-    The 12-month window isn't about preventing doom—it's about **stabilizing vulnerable groups during recovery** 
-    so the next shock doesn't devastate them. Miss the window, and recovery becomes a false dawn followed by 
-    deeper crisis.
-    """)
-    
-    st.info("""
-    💡 **Narrative:** The forecast shows **recovery**—most occupations will improve from 2024's spike. But 
-    logistic models warn: **Service & Sales, Cleaners, Craftsmen remain structurally fragile** (99%+ risk scores). 
-    Here's the window: **12 months to build resilience cushions during recovery**. Reskilling takes 6-18 months. 
-    Placement takes 3-6 months. **Start in Q1, and these groups emerge stronger. Wait until Q3, and the next shock 
-    finds them unprepared**. The cost math: S\\$85M proactive investment now vs. S\\$500M reactive crisis spending 
-    later. This isn't about stopping 2025 unemployment—it's about **ensuring recovery sticks** and vulnerable 
-    groups don't collapse when the next disruption hits.
-    """)
-
-
-def slide_4_4_strategic_recommendations():
+def slide_4_3_strategic_recommendations():
     """Slide 4.4: Strategic Recommendations - The action plan"""
     st.markdown("# Strategic Recommendations")
     st.markdown("### From Prediction to Prevention")
@@ -2253,8 +2152,7 @@ def render_slide(act: int, slide: int, engine: Optional[sqlalchemy.engine.Engine
         (3, 4): slide_3_4_analysis_summary,
         (4, 1): slide_4_1_predictive_modeling,
         (4, 2): slide_4_2_2025_forecasts,
-        (4, 3): slide_4_3_intervention_window,
-        (4, 4): slide_4_4_strategic_recommendations,
+        (4, 3): slide_4_3_strategic_recommendations,
         (5, 1): slide_5_1_journey_summary_and_qa,
     }
     

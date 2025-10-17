@@ -8,7 +8,7 @@ import sqlalchemy
 
 
 # Presentation configuration
-SLIDES_PER_ACT = {1: 4, 2: 3, 3: 4, 4: 4, 5: 1}
+SLIDES_PER_ACT = {1: 4, 2: 3, 3: 4, 4: 3, 5: 1}
 TOTAL_ACTS = 5
 ACT_NAMES = {
     1: "ACT I: INTRODUCTION",
