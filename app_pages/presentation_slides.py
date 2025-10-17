@@ -1520,7 +1520,7 @@ def slide_3_4_analysis_summary():
     **WHY they're vulnerable** (automation, structural shifts, demographic factors).
     
     **Next Question:** Can we predict unemployment increases for 2025? And if so, what's the 
-    optimal intervention window?
+    step forward?
     """)
 
 
