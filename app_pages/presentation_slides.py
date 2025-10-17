@@ -39,8 +39,6 @@ def slide_1_1_project_opening():
     - Which occupations demand immediate reskilling and policy support?
     - Need for evidence-backed, forward-looking insights
     """)
-    
-    st.info("💡 **Narrative:** Singapore's labour market stands at a crossroads. As we navigate post-pandemic recovery alongside rapid automation, traditional workforce patterns are fracturing. Some occupations thrive while others face mounting pressure. Today, we'll show you which groups need support—and we have the data to prove it.")
 
 
 def slide_1_2_powerbi_dashboard():
@@ -74,8 +72,6 @@ def slide_1_2_powerbi_dashboard():
         - Demographic filters
         - Education/qualification levels
         """)
-    
-    st.info("💡 **Narrative:** Before we dive deep, take a moment to explore the data yourself. This dashboard aggregates 11 years of Ministry of Manpower data—over 500,000 data points covering 8 major occupation groups, demographic splits, and qualification levels. Every insight we share today is grounded in this evidence base.")
 
 
 def slide_1_3_research_framework():
@@ -109,8 +105,6 @@ def slide_1_3_research_framework():
         st.metric("Policy Anchor", "Evidence-based conversations")
     with col3:
         st.metric("Reusability", "Labour monitoring tool")
-    
-    st.info("💡 **Narrative:** Our guiding question is simple: **Where is unemployment concentrated, and why?** We hypothesize that lower-skilled occupations face structurally higher risk than professional roles. Over the next slides, we'll test this hypothesis rigorously—and the results will surprise you.")
 
 
 def slide_1_4_analytic_strategy():
@@ -156,8 +150,6 @@ def slide_1_4_analytic_strategy():
         """)
     
     st.markdown("---")
-    
-    st.info("💡 **Narrative:** Our journey moves systematically from data preparation through analytical discovery to actionable forecasts. Each act builds toward one goal: evidence-backed recommendations for Singapore's workforce planning. By Act IV, you'll know exactly which occupations need support and when to intervene.")
 
 
 # ============================================================================
@@ -205,9 +197,9 @@ def slide_2_1_data_sourcing(engine: Optional[sqlalchemy.engine.Engine]):
     with col1:
         st.markdown("**Limitations:**")
         st.markdown("""
-        • Years encoded as columns
-        • Cumbersome joins & aggregations  
-        • Window functions impractical
+        • Years encoded as columns\n
+        • Cumbersome joins & aggregations\n  
+        • Window functions impractical\n
         • Schema changes every year
         """)
         
@@ -247,8 +239,6 @@ def slide_2_1_data_sourcing(engine: Optional[sqlalchemy.engine.Engine]):
     with col4:
         if st.button("📋 Details", help="View detailed information about all 7 long tables", use_container_width=True):
             show_long_tables_detail()
-    
-    st.info("💡 **Narrative:** Ministry of Manpower publishes data in wide format (years as columns). We transform all 7 source tables to long format via UNION ALL stacks, creating a consistent SQL foundation for downstream analysis. This mirrors the documented workflow in Module 1 materials.")
 
 
 def slide_2_2_pipeline_architecture():
@@ -331,8 +321,6 @@ def slide_2_2_pipeline_architecture():
         st.markdown("**Rate Bounds** ℹ️")
         st.markdown("# ✅ **Valid**")
 
-    st.info("💡 **Narrative:** Our robust ETL pipeline ensures data quality through systematic health checks, enables temporal analysis via datetime conversion, and maintains data integrity through outlier detection—creating a reliable foundation for analytics.")
-
 def slide_2_3_master_dataset():
     """Slide 2.3: Preliminary SQL Analysis - Industry & Occupation Risk Lens"""
     st.markdown("# SQL Preliminary Analysis")
@@ -380,8 +368,6 @@ def slide_2_3_master_dataset():
     - **Technical trades and managerial roles** recover faster, reinforcing structural resilience
     - **Pattern reveals**: Structural rather than cyclical risk—automation and demand shifts magnify volatility beyond crisis periods
     """)
-    
-    st.info("💡 **Narrative:** This SQL-based preliminary analysis uncovers occupation-level risk patterns directly from transformed long tables. Customer-facing roles show persistent vulnerability while PMET occupations demonstrate resilience. These patterns set up our deeper **visual and demographic analysis in Act III**, where we'll unpack the HOW and WHY through three analytic lenses: Trend, Human Capital, and Comparative.")
 
 
 # ============================================================================
@@ -787,15 +773,6 @@ def slide_3_1_trend_lens():
         '2022-2024 Level': ['4-5%', '2.5-3.5%', '2.5-3%', '2-2.5%']
     })
     st.dataframe(risk_comparison, use_container_width=True, hide_index=True)
-    
-    st.info("""
-    💡 **Narrative:** The COVID-19 period marked a sharp spike across all occupations, with 
-    lower-skilled groups such as Clerical Support Workers and Service & Sales Workers experiencing 
-    the most severe disruptions. Despite partial recovery post-2021, these roles maintained the 
-    **highest average unemployment rates**, highlighting their **structural vulnerability** compared 
-    to higher-skilled roles. This isn't cyclical—it's automation and demand shifts magnifying risk 
-    beyond crisis periods.
-    """)
 
 
 @st.dialog("📚 Education Tiers & Unemployment Share", width="large")
@@ -1137,17 +1114,6 @@ def slide_3_2_human_capital_lens():
         - **Service/Clerical roles:** Higher female vulnerability to cyclical losses
         - **Professional positions:** More balanced gender distribution patterns
         """)
-    
-    st.info("""
-    💡 **Narrative:** Demographics reveal critical vulnerability patterns within occupations. 
-    **Education's protective power is eroding**—degree holders now represent 40.7% of unemployment, 
-    signaling structural shifts where qualifications alone no longer guarantee job security. 
-    **Age stratification intensifies risk**: youth (15-29) comprise 26.9% of unemployed, requiring 
-    early career transition support, while mature workers with low education face 5-7 times 
-    higher unemployment rates. **Gender exposure varies dramatically** across occupation families, 
-    with women in service and clerical roles experiencing heightened cyclical vulnerability—demanding 
-    targeted reskilling programs and inclusive placement strategies to address these intersecting disadvantages.
-    """)
 
 
 @st.dialog("📊 High-Skill vs Low-Skill Resilience Comparison", width="large")
@@ -1361,14 +1327,6 @@ def slide_3_3_comparative_lens():
     - **3-year rolling ratio:** Low-skill consistently 1.5x higher than high-skill
     - **Volatility:** Low-skill groups show 3x more volatility than PMET
     """)
-    
-    st.info("""
-    💡 **Narrative:** Although recovery reduced the disparity post-COVID, the **resilience of 
-    high-skill occupations continues to outperform**, illustrating the ongoing need for reskilling 
-    in lower-skilled job segments. The persistent 1.5x gap confirms structural vulnerability—this 
-    isn't about cyclical shocks; it's about automation, technological shifts, and demand transformation 
-    hitting lower-skilled workers harder and longer.
-    """)
 
 
 def slide_3_4_analysis_summary():
@@ -1423,35 +1381,35 @@ def slide_3_4_analysis_summary():
         - Upskilling pathways critical
         """)
     
-    st.markdown("---")
-    st.markdown("### **Unified Model: What Drives Unemployment Risk?**")
+    # st.markdown("---")
+    # st.markdown("### **Unified Model: What Drives Unemployment Risk?**")
     
-    import pandas as pd
-    unified_model = pd.DataFrame({
-        'Risk Factor': [
-            'Occupation Type',
-            'Education Level',
-            'Age Group',
-            'Time Period',
-            'Interaction: Age × Education'
-        ],
-        'Effect Size': ['High', 'Very High', 'Moderate', 'High', 'Very High'],
-        'Direction': [
-            'Customer-facing > PMET',
-            'Lower ed > Higher ed',
-            'Mature > Youth',
-            'COVID > Pre/Post',
-            'Mature + Low Ed = Highest risk'
-        ],
-        'Policy Lever': [
-            'Reskilling pathways',
-            'Upskilling programs',
-            'Age-targeted support',
-            'Shock-responsive safety nets',
-            'Integrated programs'
-        ]
-    })
-    st.dataframe(unified_model, use_container_width=True, hide_index=True)
+    # import pandas as pd
+    # unified_model = pd.DataFrame({
+    #     'Risk Factor': [
+    #         'Occupation Type',
+    #         'Education Level',
+    #         'Age Group',
+    #         'Time Period',
+    #         'Interaction: Age × Education'
+    #     ],
+    #     'Effect Size': ['High', 'Very High', 'Moderate', 'High', 'Very High'],
+    #     'Direction': [
+    #         'Customer-facing > PMET',
+    #         'Lower ed > Higher ed',
+    #         'Mature > Youth',
+    #         'COVID > Pre/Post',
+    #         'Mature + Low Ed = Highest risk'
+    #     ],
+    #     'Policy Lever': [
+    #         'Reskilling pathways',
+    #         'Upskilling programs',
+    #         'Age-targeted support',
+    #         'Shock-responsive safety nets',
+    #         'Integrated programs'
+    #     ]
+    # })
+    # st.dataframe(unified_model, use_container_width=True, hide_index=True)
     
     st.markdown("---")
     st.markdown("### **Bridge to Prediction (Act IV)**")
@@ -1462,20 +1420,6 @@ def slide_3_4_analysis_summary():
     
     **Next Question:** Can we predict unemployment increases for 2025? And if so, what's the 
     optimal intervention window?
-    
-    **Act IV Preview:**
-    - Build predictive models using these patterns
-    - Forecast 2025 unemployment by occupation
-    - Quantify the 12-month intervention window
-    - Deliver actionable recommendations with ROI
-    """)
-    
-    st.info("""
-    💡 **Narrative:** Three lenses, one story: **Structural vulnerability concentrates in 
-    customer-facing, lower-education, mature worker segments**. The convergence of occupation type, 
-    education level, and demographics creates a **5-7x risk multiplier**. This isn't speculation—it's 
-    11 years of data revealing persistent patterns. Now we take these insights forward to **predict 
-    2025 unemployment and prescribe interventions** with measurable impact.
     """)
 
 
@@ -1571,15 +1515,6 @@ def slide_4_1_predictive_modeling():
     with col3:
         st.metric("2025 Forecast", "2024 features", "Carried forward")
         st.caption("Scaffold built from latest year patterns")
-    
-    st.info("""
-    💡 **Narrative:** Analysis told us **who** and **why**. Prediction tells us **what happens next**. 
-    We built two models: **KNN** gives exact forecasts ('Service & Sales = 2.87% in 2025'), **Logistic** 
-    gives probabilities ('99.9% chance of increase'). Both trained on 11 years of historical patterns (2014-2024), both 
-    validated on held-out 2023 data—meaning we **already proved they work**. We engineered 50+ features 
-    encoding everything we learned: past unemployment, demographics, education, occupation structure. 
-    The models don't guess—they **calculate**.
-    """)
 
 
 def slide_4_2_2025_forecasts():
@@ -1736,17 +1671,6 @@ def slide_4_2_2025_forecasts():
     
     **Actionable Takeaway:** Prioritize stabilization programs for high-risk groups during recovery phase.
     """)
-    
-    st.info("""
-    💡 **Narrative:** The 2025 story is nuanced: **recovery with fragility**. After 2024's spike (Service & 
-    Sales hit 5.20%), KNN forecasts broad improvements—6 of 8 occupations will see decreases. But here's the 
-    critical insight: Logistic regression, analyzing 11 years of volatility patterns, assigns **99%+ risk** to 
-    Service & Sales, Cleaners, and Craftsmen. This isn't contradiction—it's complementary intelligence. KNN 
-    says: "Expect recovery." Logistic warns: "But these groups remain structurally vulnerable." The two exceptions 
-    bucking recovery? **Cleaners (+0.30pp) and Clerical Support (+1.14pp to 4.24%)**—the latter driven by 
-    automation replacing administrative roles. When models trained on 11 years of patterns converge on *vulnerability* 
-    rather than direction, the message is clear: **stabilize these groups during recovery before the next shock hits**.
-    """)
 
 
 def slide_4_3_strategic_recommendations():
@@ -1886,17 +1810,6 @@ def slide_4_3_strategic_recommendations():
     - Prolonged, deeper unemployment cycle
     
     ### **The choice: Invest S\\$85M to fortify during recovery, or gamble that recovery lasts.**
-    """)
-    
-    st.info("""
-    💡 **Narrative:** From prediction to **resilience**—the strategic pivot. While KNN forecasts recovery 
-    for most occupations, logistic models warn: **Service & Sales, Cleaners, Craftsmen remain structurally 
-    vulnerable** (99%+ risk). The playbook: **Priority 1:** Resilience-building for 800,000 vulnerable workers 
-    during recovery phase (S$50M, 60% risk reduction). **Priority 2:** Early warning system to catch next 
-    shock early (S$5M, 12+ month lead time). **Priority 3:** Safety net for the two outliers bucking recovery—
-    Cleaners and Clerical (S\\$30M, 75% placement rate). **Priority 4:** Future-proof curriculum. **Total: S\\$85M. 
-    Value: S$500M+ when next disruption hits.** The insight: recovery ≠ resilience. Use this 12-month window 
-    to **fortify vulnerable groups** so they emerge stronger, not just temporarily better.
     """)
 
 
