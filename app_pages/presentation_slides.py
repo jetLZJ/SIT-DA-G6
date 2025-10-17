@@ -205,41 +205,37 @@ def slide_2_1_data_sourcing(engine: Optional[sqlalchemy.engine.Engine]):
         
         st.markdown("**Structure:**")
         st.markdown("""
-        • Years as columns
-        • Each row = dimension combo
+        • Years as columns\n
+        • Each row = dimension combo\n
         • 3 rows × 11 columns = 33 cells
         """)
     
     with col2:
         st.markdown("**Advantages:**")
         st.markdown("""
-        • One observation per row
-        • Easy time-series queries
-        • Natural joins & GROUP BY
+        • One observation per row\n
+        • Easy time-series queries\n
+        • Natural joins & GROUP BY\n
         • Scalable analytics
         """)
         
         st.markdown("**Structure:**")
         st.markdown("""
-        • One observation per row
-        • 3 dimensions × 11 years = 33 rows
-        • Ready for SQL analytics
+        • One observation per row\n
+        • 3 dimensions × 11 years = 33 rows\n
+        • Ready for SQL analytics\n
         """)
     
     st.markdown("---")
     
     # Bottom section - Transformation metrics
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 0.5])
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         st.metric("Source Tables", "7", help="MOM wide format tables")
     with col2:
         st.metric("Transformation", "UNION ALL", help="SQL-based unpivot operation")
     with col3:
         st.metric("Output", "7 long tables", help="Analytics-ready format")
-    with col4:
-        if st.button("📋 Details", help="View detailed information about all 7 long tables", use_container_width=True):
-            show_long_tables_detail()
-
 
 def slide_2_2_pipeline_architecture():
     """Slide 2.2: Data Cleaning Process (Module 2)"""
@@ -655,10 +651,21 @@ def _load_gender_data():
         return None
 
 
-@st.dialog("📈 Occupation Unemployment Trajectories (2014-2024)", width="large")
-def show_trend_plot():
-    """Display the trend analysis plot in a modal"""
-    st.markdown("### Interactive Trend Analysis")
+def slide_3_1_trend_lens():
+    """Slide 3.1: Trend Lens - Unemployment trajectories across occupation groups"""
+    st.markdown("# Trend Lens")
+    st.markdown("### Unemployment Trajectories Across Occupation Groups")
+    
+    st.markdown("---")
+    
+    st.markdown("""
+    This lens explores **decade-long unemployment patterns** to identify persistent structural 
+    pressures and cyclical shocks across occupations. We track trajectories for eight main 
+    occupation families from 2014 to 2024.
+    """)
+    
+    # Direct plot display (removed from modal)
+    st.markdown("### **Interactive Trend Analysis**")
     st.caption("Unemployment rate trajectories by occupation over 11 years")
     
     # Load real data
@@ -691,88 +698,18 @@ def show_trend_plot():
             top_row = latest_data.loc[latest_data['unemployment_pct'].idxmax()]
             bottom_row = latest_data.loc[latest_data['unemployment_pct'].idxmin()]
             st.caption(f"**{int(latest_year)} snapshot:** {top_row['occupation']} led at {top_row['unemployment_pct']:.1f}% while {bottom_row['occupation']} was lowest at {bottom_row['unemployment_pct']:.1f}%")
-        
-        st.markdown("""
-        **Key Observations:**
-        - COVID-19 (2020-2021) caused sharp spikes across all occupations
-        - Customer-facing roles (Clerical, Service & Sales) show highest volatility
-        - PMET roles (Managers, Professionals) demonstrate faster recovery
-        - Post-2022 divergence: PMET return to baseline, others remain elevated
-        """)
     else:
         st.warning("Unable to load trend data. Please ensure Module 2 data is loaded or database connection is available.")
         st.info("Navigate to Module 2 to load the unemployment dataset first.")
 
-
-def slide_3_1_trend_lens():
-    """Slide 3.1: Trend Lens - Unemployment trajectories across occupation groups"""
-    st.markdown("# Trend Lens")
-    st.markdown("### Unemployment Trajectories Across Occupation Groups")
-    
     st.markdown("---")
-    
-    # Add plot button
-    col_text, col_button = st.columns([4, 1])
-    with col_text:
-        st.markdown("""
-        This lens explores **decade-long unemployment patterns** to identify persistent structural 
-        pressures and cyclical shocks across occupations. We track trajectories for eight main 
-        occupation families from 2014 to 2024.
-        """)
-    with col_button:
-        if st.button("📊 View Plot", key="trend_plot_btn", use_container_width=True):
-            show_trend_plot()
-    
-    st.markdown("### **Key Findings:**")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### 📈 **COVID-19 Period (2020-2021)**")
-        st.markdown("""
-        - **Sharp spike across ALL occupations**
-        - Lower-skilled groups hit hardest:
-          - Clerical Support Workers: **7.15%**
-          - Service & Sales Workers: **7.05%**
-          - Cleaners, Labourers: **5.60%**
-        - Professional roles less impacted:
-          - Managers: **2.80%** (minimal increase)
-          - Professionals: **3.45%**
-        """)
-    
-    with col2:
-        st.markdown("#### 📉 **Post-2021 Recovery Pattern**")
-        st.markdown("""
-        - **Partial recovery** but NOT back to baseline
-        - Customer-facing roles remain elevated:
-          - Clerical: **5.47%** (still high)
-          - Service & Sales: **4.10%**
-        - PMET roles recover fully:
-          - Managers: **2.23%** (below pre-COVID)
-          - Professionals: **2.57%**
-        """)
-    
-    st.markdown("---")
-    st.markdown("### **Structural vs Cyclical Risk**")
-    
-    import pandas as pd
-    risk_comparison = pd.DataFrame({
-        'Occupation Type': [
-            'Customer-Facing (Clerical, Service & Sales)',
-            'Manual Labor (Cleaners, Craftsmen)',
-            'Technical (Associate Prof., Plant Operators)',
-            'PMET (Professionals, Managers)'
-        ],
-        'Risk Pattern': [
-            'Structural - Elevated even post-COVID',
-            'Mixed - Volatile but recovering',
-            'Moderate - Stable trajectories',
-            'Resilient - Quick recovery'
-        ],
-        '2020-2021 Spike': ['7%+', '4-6%', '3-4%', '2-3%'],
-        '2022-2024 Level': ['4-5%', '2.5-3.5%', '2.5-3%', '2-2.5%']
-    })
-    st.dataframe(risk_comparison, use_container_width=True, hide_index=True)
+    st.markdown("### **Key Observations**")
+    st.markdown("""
+    - **COVID-19 (2020-2021) caused sharp spikes** across all occupations with lower-skilled groups hit hardest
+    - **Customer-facing roles show structural vulnerability** with persistent elevation post-recovery  
+    - **PMET roles demonstrate faster recovery** returning to baseline while others remain elevated
+    - **Post-2022 divergence** confirms structural rather than cyclical risk patterns
+    """)
 
 
 @st.dialog("📚 Education Tiers & Unemployment Share", width="large")
@@ -1041,79 +978,181 @@ def slide_3_2_human_capital_lens():
     
     st.markdown("---")
     
-    # Add plot buttons
-    col_text, col_btn1, col_btn2, col_btn3 = st.columns([2, 1, 1, 1])
-    with col_text:
-        st.markdown("""
-        This lens examines how **education, gender, and age** interact with occupation groups to 
-        influence unemployment risk. It highlights demographic profiles driving vulnerability and 
-        identifies where targeted policy interventions could deliver the greatest impact.
-        """)
-    with col_btn1:
-        if st.button("📚 Education", key="edu_plot_btn", use_container_width=True):
-            show_education_plot()
-    with col_btn2:
-        if st.button("👥 Age Groups", key="age_plot_btn", use_container_width=True):
-            show_age_plot()
-    with col_btn3:
-        if st.button("⚖️ Gender", key="gender_plot_btn", use_container_width=True):
-            show_gender_plot()
+    st.markdown("""
+    This lens examines how **education, gender, and age** interact with occupation groups to 
+    influence unemployment risk. It highlights demographic profiles driving vulnerability and 
+    identifies where targeted policy interventions could deliver the greatest impact.
+    """)
     
-    st.markdown("### **Education: The Protective Factor**")
+    # Education Analysis - Direct display
+    st.markdown("### **📚 Education Tiers & Unemployment Share**")
+    st.caption("How education levels contribute to unemployment composition over time")
     
-    col1, col2 = st.columns(2)
+    # Load and display education plot
+    df_edu = _load_education_data()
     
-    with col1:
-        st.markdown("#### 📚 **Higher Education = Lower Risk**")
-        import pandas as pd
-        edu_data = pd.DataFrame({
-            'Education Level': [
-                'Below Secondary',
-                'Secondary',
-                'Post-Secondary (Non-Tertiary)',
-                'Diploma & Professional',
-                'Degree'
-            ],
-            '2020-2021 (COVID)': ['4.87%', '5.44%', '5.68%', '5.41%', '4.32%'],
-            '2022-2024 (Recovery)': ['2.96%', '3.58%', '4.14%', '3.83%', '3.16%'],
-            'Recovery Speed': ['Fast', 'Moderate', 'Slow', 'Slow', 'Fast']
-        })
-        st.dataframe(edu_data, use_container_width=True, hide_index=True)
-    
-    with col2:
-        st.markdown("#### 📊 **Key Insights**")
-        st.markdown("""
-        - **Degree holders** stabilize fastest (3.16% by 2024)
-        - **Mid-tier qualifications** hit hardest during COVID
-        - **Post-Secondary** shows slowest recovery (4.14%)
-        - Education alone no longer fully insulates workers
-        """)
+    if df_edu is not None and not df_edu.empty:
+        edu_order = [
+            'Below Secondary',
+            'Secondary',
+            'Post-Secondary (Non-Tertiary)',
+            'Diploma & Professional Qualification',
+            'Degree',
+        ]
         
-        st.metric("Education-Unemployment Correlation", "-0.69", 
-                 help="Strong negative correlation: Higher education = Lower unemployment")
+        colors = px.colors.qualitative.Bold
+        fig = px.area(
+            df_edu,
+            x='year',
+            y='share_pct',
+            color='education',
+            color_discrete_map={edu: colors[i % len(colors)] for i, edu in enumerate(edu_order)},
+            category_orders={'education': edu_order},
+            labels={'year': 'Year', 'share_pct': 'Share of unemployed (%)', 'education': 'Education tier'},
+            title='Education Tiers Driving Unemployment Share',
+            height=400
+        )
+        
+        # Add COVID highlight
+        fig.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+        )
+        
+        fig.update_yaxes(range=[0, 100])
+        fig.update_layout(
+            legend_title_text='Education tier', 
+            hovermode='x unified', 
+            legend=dict(traceorder='reversed')
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show latest year summary
+        latest_year = df_edu['year'].max()
+        latest_data = df_edu[df_edu['year'] == latest_year]
+        if not latest_data.empty:
+            st.caption("**2024 education profile:** Degree contributed the highest share of unemployment at 40.7% across all tiers.")
+    else:
+        st.warning("Unable to load education data. Please ensure Module 2 data is loaded.")
     
+    # Age Group Analysis - Direct display  
     st.markdown("---")
-    st.markdown("### **Age & Gender: Within-Occupation Exposure Patterns**")
+    st.markdown("### **👥 Age Group Distribution**")
+    st.caption("Overall unemployment patterns by age group")
     
-    col1, col2 = st.columns(2)
+    df_age = _load_age_data()
     
-    with col1:
-        st.markdown("#### 👥 **Age Group Patterns**")
-        st.markdown("""
-        - **Youth (15-24):** Highest volatility, rapid recovery
-        - **Prime age (25-54):** Moderate, stable patterns
-        - **Mature (55-64):** Slower recovery, persistent risk
-        - **Age x Education interaction:** Mature + low education = 5-7 times higher unemployment
-        """)
+    if df_age is not None and not df_age.empty and 'year' in df_age.columns:
+        # Check what columns are available and use the appropriate one
+        if 'share_pct' in df_age.columns:
+            y_col = 'share_pct'
+            y_label = 'Share of Unemployed (%)'
+        elif 'unemployed_count' in df_age.columns:
+            y_col = 'unemployed_count'
+            y_label = 'Unemployed Count'
+        else:
+            st.info(f"Available columns: {list(df_age.columns)}")
+            y_col = df_age.select_dtypes(include=['number']).columns[0] if len(df_age.select_dtypes(include=['number']).columns) > 0 else 'value'
+            y_label = 'Value'
+        
+        fig_age = px.line(
+            df_age,
+            x='year',
+            y=y_col,
+            color='age_group',
+            markers=True,
+            title='Unemployment by Age Group Over Time',
+            height=350,
+            labels={'year': 'Year', y_col: y_label, 'age_group': 'Age Group'}
+        )
+        
+        fig_age.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+        )
+        
+        fig_age.update_layout(hovermode='x unified')
+        st.plotly_chart(fig_age, use_container_width=True)
+    else:
+        st.info("Age group time-series data not available in current dataset structure.")
     
-    with col2:
-        st.markdown("#### ⚖️ **Gender Exposure within Occupation Families**")
-        st.markdown("""
-        - **Male unemployment** leads overall volume across occupation families
-        - **Female exposure** varies significantly by occupation type  
-        - **Service/Clerical roles:** Higher female vulnerability to cyclical losses
-        - **Professional positions:** More balanced gender distribution patterns
-        """)
+    # Gender Analysis - Direct display
+    st.markdown("---")
+    st.markdown("### **⚖️ Gender Exposure within Occupation Families**")
+    st.caption("Share of unemployment by gender across top occupation families")
+    
+    gender_raw = _load_gender_data()
+    
+    if gender_raw is not None:
+        try:
+            gender_df, gen_year, gen_occ, gen_dim, gen_count = prepare_demographic_share(
+                gender_raw, ['gender', 'sex']
+            )
+            
+            if gender_df is not None and not gender_df.empty:
+                top_gender_occupations = (
+                    gender_df.groupby(gen_occ)[gen_count]
+                    .sum()
+                    .sort_values(ascending=False)
+                    .head(6)
+                    .index
+                )
+                
+                gender_focus = gender_df[gender_df[gen_occ].isin(top_gender_occupations)].copy()
+                
+                if not gender_focus.empty:
+                    fig_gender = px.area(
+                        gender_focus,
+                        x=gen_year,
+                        y='share_pct',
+                        color=gen_dim,
+                        facet_col=gen_occ,
+                        facet_col_wrap=3,
+                        category_orders={gen_dim: sorted(gender_focus[gen_dim].unique())},
+                        color_discrete_map={'Female': 'pink', 'Male': 'blue'},
+                        labels={gen_year: 'Year', 'share_pct': 'Share of unemployed (%)', gen_dim: 'Gender'},
+                        title='Gender exposure within occupation families',
+                        height=500,
+                    )
+                    
+                    fig_gender.update_yaxes(matches=None, range=[0, 100])
+                    fig_gender.for_each_annotation(lambda a: a.update(text=a.text.split('=')[-1]))
+                    fig_gender.update_layout(legend_title_text='Gender', hovermode='x unified')
+                    
+                    # Add COVID period highlighting
+                    try:
+                        fig_gender.add_vrect(
+                            x0=2019.5,
+                            x1=2021.5,
+                            fillcolor='rgba(255, 165, 0, 0.15)',
+                            line_width=0,
+                            row='all',
+                            col='all',
+                        )
+                    except Exception:
+                        pass
+                    
+                    st.plotly_chart(fig_gender, use_container_width=True)
+                else:
+                    st.info("No gender data available for top occupations.")
+            else:
+                st.info("Gender demographic data processing failed.")
+        except Exception as e:
+            st.warning(f"Unable to process gender data: {str(e)}")
+    else:
+        st.warning("Unable to load gender data.")
+
+    st.markdown("---")
+    st.markdown("### **Key Observations**")
+    st.markdown("""
+    - **Education's protective power is eroding**: Degree holders now represent 40.7% of unemployment, signaling structural shifts
+    - **Age stratification intensifies risk**: Youth show highest volatility while mature workers face slower recovery  
+    - **Gender exposure varies dramatically** across occupation families with service/clerical roles showing higher female vulnerability
+    - **Demographic intersections create vulnerability**: Mature + low education = 5-7 times higher unemployment risk
+    """)
 
 
 @st.dialog("📊 High-Skill vs Low-Skill Resilience Comparison", width="large")
@@ -1250,82 +1289,144 @@ def slide_3_3_comparative_lens():
     
     st.markdown("---")
     
-    # Add plot button
-    col_text, col_button = st.columns([4, 1])
-    with col_text:
-        st.markdown("""
-        This section benchmarks **high-skill (PMET)** occupations against **low-skill groups** to 
-        assess long-term resilience. The persistent gap confirms the hypothesis that lower-skilled 
-        occupations are more vulnerable to technological and industry transformations.
-        """)
-    with col_button:
-        if st.button("📊 View Analysis", key="comparative_plot_btn", use_container_width=True):
-            show_comparative_plot()
-    
-    st.markdown("### **Skill Tier Classification**")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### 🔵 **High Skill (PMET)**")
-        import pandas as pd
-        high_skill = pd.DataFrame({
-            'Occupation': [
-                'Professionals',
-                'Managers & Administrators',
-                'Associate Professionals & Technicians'
-            ],
-            'Avg Unemployment': ['2.67%', '2.57%', '3.08%'],
-            'Volatility': ['Low', 'Very Low', 'Low']
-        })
-        st.dataframe(high_skill, use_container_width=True, hide_index=True)
-    
-    with col2:
-        st.markdown("#### 🔴 **Low Skill (Non-PMET)**")
-        low_skill = pd.DataFrame({
-            'Occupation': [
-                'Cleaners, Labourers & Related',
-                'Service & Sales Workers',
-                'Clerical Support Workers',
-                'Craftsmen & Trades',
-                'Plant & Machine Operators'
-            ],
-            'Avg Unemployment': ['4.29%', '5.42%', '5.91%', '3.22%', '3.23%'],
-            'Volatility': ['High', 'Very High', 'Very High', 'Moderate', 'Moderate']
-        })
-        st.dataframe(low_skill, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    st.markdown("### **The Resilience Gap**")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("High Skill Avg", "2.77%", help="PMET average unemployment")
-    with col2:
-        st.metric("Low Skill Avg", "4.42%", help="Non-PMET average unemployment")
-    with col3:
-        st.metric("Resilience Gap", "1.65pp", delta="-59%", delta_color="inverse",
-                 help="Low skill 59% higher than high skill")
-    
-    st.markdown("### **Period-Based Comparison**")
-    
-    import pandas as pd
-    comparative_periods = pd.DataFrame({
-        'Period': ['2014-2016', '2017-2019', '2020-2021 (COVID)', '2022-2024'],
-        'High Skill Avg': ['2.87%', '2.94%', '3.42%', '2.52%'],
-        'Low Skill Avg': ['4.28%', '4.32%', '5.85%', '3.67%'],
-        'Gap (pp)': ['1.41', '1.38', '2.43', '1.15'],
-        'Ratio (Low/High)': ['1.49x', '1.47x', '1.71x', '1.46x']
-    })
-    st.dataframe(comparative_periods, use_container_width=True, hide_index=True)
-    
-    st.markdown("### **Key Findings:**")
     st.markdown("""
-    - **COVID amplified the gap:** 2.43pp gap during 2020-2021 (vs 1.4pp baseline)
-    - **Post-recovery:** Gap returns to ~1.15pp but low-skill unemployment remains elevated
-    - **3-year rolling ratio:** Low-skill consistently 1.5x higher than high-skill
-    - **Volatility:** Low-skill groups show 3x more volatility than PMET
+    This section benchmarks **high-skill (PMET)** occupations against **low-skill groups** to 
+    assess long-term resilience. The persistent gap confirms the hypothesis that lower-skilled 
+    occupations are more vulnerable to technological and industry transformations.
+    """)
+    
+    # Direct plot display (removed from modal)
+    st.markdown("### **📊 Structural Resilience Comparison**")
+    st.caption("Multi-panel analysis showing unemployment rates, gaps, and ratios over time")
+    
+    # Load real data
+    df_comp = _load_comparative_data()
+    
+    if df_comp is not None and not df_comp.empty:
+        # Create subplots
+        fig = make_subplots(
+            rows=2, cols=2,
+            specs=[[{'colspan': 2}, None], [{}, {}]],
+            subplot_titles=(
+                'Average unemployment rate by skill tier',
+                'Low - High unemployment rate gap',
+                'Low-to-high unemployment rate ratio'
+            ),
+            vertical_spacing=0.15,
+            horizontal_spacing=0.12
+        )
+        
+        # Top plot: Unemployment rates
+        fig.add_trace(
+            go.Scatter(
+                x=df_comp['year_yr'], 
+                y=df_comp['High Skill'], 
+                mode='lines+markers', 
+                name='High Skill',
+                line=dict(color='#1f77b4', width=3)
+            ),
+            row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df_comp['year_yr'], 
+                y=df_comp['Low Skill'], 
+                mode='lines+markers', 
+                name='Low Skill',
+                line=dict(color='#ff7f0e', width=3)
+            ),
+            row=1, col=1
+        )
+        
+        # Add COVID highlight to top panel
+        fig.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+            row=1, col=1
+        )
+        
+        # Bottom left: Gap
+        fig.add_trace(
+            go.Bar(
+                x=df_comp['year_yr'], 
+                y=df_comp['gap_pct_point'], 
+                name='Gap (pct pts)', 
+                marker_color='#ff7f0e'
+            ),
+            row=2, col=1
+        )
+        
+        # Add COVID highlight to gap panel
+        fig.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+            row=2, col=1
+        )
+        
+        fig.add_hline(y=0, line=dict(color='#444', dash='dash'), row=2, col=1)
+        
+        # Bottom right: Ratio
+        fig.add_trace(
+            go.Scatter(
+                x=df_comp['year_yr'], 
+                y=df_comp['ratio'], 
+                mode='lines+markers', 
+                name='Ratio',
+                line=dict(color='#2ca02c', width=3)
+            ),
+            row=2, col=2
+        )
+        
+        # Add COVID highlight to ratio panel  
+        fig.add_vrect(
+            x0=2019.5, x1=2021.5,
+            fillcolor='rgba(255, 165, 0, 0.15)',
+            line_width=0,
+            row=2, col=2
+        )
+        
+        fig.add_hline(y=1.0, line=dict(color='#444', dash='dash'), row=2, col=2)
+        
+        fig.update_xaxes(title_text='Year', row=1, col=1, tickmode='linear', dtick=1)
+        fig.update_xaxes(title_text='Year', row=2, col=1, tickmode='linear', dtick=1)
+        fig.update_xaxes(title_text='Year', row=2, col=2, tickmode='linear', dtick=1)
+        fig.update_yaxes(title_text='Unemployment Rate (%)', row=1, col=1)
+        fig.update_yaxes(title_text='Gap (percentage points)', row=2, col=1)
+        fig.update_yaxes(title_text='Low / High Ratio', row=2, col=2)
+        
+        # Update layout
+        fig.update_layout(
+            height=650,
+            title_text="High-Skill vs Low-Skill Resilience Comparison",
+            title_x=0.5,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Summary insights
+        latest_year = df_comp['year_yr'].max()
+        latest_data = df_comp[df_comp['year_yr'] == latest_year].iloc[0]
+        st.caption(f"**{int(latest_year)} snapshot:** Low-skill: {latest_data['Low Skill']:.1f}%, High-skill: {latest_data['High Skill']:.1f}%, Gap: {latest_data['gap_pct_point']:.1f}pp, Ratio: {latest_data['ratio']:.1f}x")
+    else:
+        st.warning("Unable to load comparative data. Please ensure Module 2 data is loaded.")
+
+    st.markdown("---")
+    st.markdown("### **Key Observations**")
+    st.markdown("""
+    - **Persistent 1.5x gap**: Low-skill occupations consistently show higher unemployment than high-skill roles
+    - **COVID amplified disparities**: Gap widened to 2.43pp during 2020-2021 crisis period  
+    - **Recovery with fragility**: Post-COVID gap returned to ~1.15pp but low-skill unemployment remains elevated
+    - **Structural vulnerability confirmed**: 3x more volatility in non-PMET roles demonstrates systemic risk patterns
     """)
 
 
