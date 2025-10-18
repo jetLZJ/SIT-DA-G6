@@ -100,11 +100,14 @@ def slide_1_3_research_framework():
     st.markdown("## **Why It Matters:**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Budget Priority", "Training funds → At-risk workers")
+        st.markdown("**Budget Priority**")
+        st.markdown("<div style='font-size: 1.1em;'>Training funds → At-risk workers</div>", unsafe_allow_html=True)
     with col2:
-        st.metric("Policy Anchor", "Evidence-based conversations")
+        st.markdown("**Policy Anchor**")
+        st.markdown("<div style='font-size: 1.1em;'>Evidence-based conversations</div>", unsafe_allow_html=True)
     with col3:
-        st.metric("Reusability", "Labour monitoring tool")
+        st.markdown("**Reusability**")
+        st.markdown("<div style='font-size: 1.1em;'>Labour monitoring tool</div>", unsafe_allow_html=True)
 
 
 def slide_1_4_analytic_strategy():
@@ -142,8 +145,8 @@ def slide_1_4_analytic_strategy():
         st.markdown("### 🎯 **ACT IV: PREDICTION & ACTION**")
         st.markdown("""
         **Forward-Looking Solutions**
-        - KNN forecasting for 2025
-        - Risk intervention windows
+        - forecasting for 2025
+        - Forecasting Analysis
         - Strategic recommendations
         
         *"What to do about it—with data to back it up"*
@@ -2280,7 +2283,7 @@ def slide_5_1_journey_summary_and_qa():
     st.success("""
     💡 **Thank you for joining us on this analytical journey.** We've transformed 11 years of unemployment data 
     into a clear roadmap for Singapore's workforce resilience. The evidence is compelling, the strategy is sound, 
-    and the path forward is mapped. **Now let's discuss how to make it happen.**
+    and the path forward is mapped. **This presentation and report can be re-visit at https://sit-da-g6.streamlit.app/**
     """)
 
 
