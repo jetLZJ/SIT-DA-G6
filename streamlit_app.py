@@ -26,7 +26,7 @@ APPENDIX_FILES = [
     },
     {
         'label': 'Module 1 — Data Fundamentals (Deck)',
-        'path': MODULES_DIR / 'M1 Data Fundamentals and SQL G6 v2.docx',
+        'path': MODULES_DIR / 'M1 Data Fundamentals and SQL G6 v4.docx',
         'mime': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     },
     {
